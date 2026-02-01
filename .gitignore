@@ -416,3 +416,5 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+/vendor/SFML-2.6.1
+/bin-int
