@@ -5,6 +5,7 @@
 #include "Player.h"
 #include "Raycaster.h"
 #include "LoadingScreen.h"
+#include "Minimap.h"
 
 enum class GameState
 {
@@ -35,10 +36,13 @@ int main()
 	// Создание меню
 	Menu menu(static_cast<float>(SCREEN_WIDTH), static_cast<float>(SCREEN_HEIGHT));
 	
-	// Создание игровых объектов
-	Map gameMap(16, 16);
-	Player player(8.0f, 8.0f, 0.0f); // Стартовая позиция в центре карты
-	Raycaster raycaster(SCREEN_WIDTH, SCREEN_HEIGHT);
+	// Игровые объекты (создаются только при старте игры)
+	Map* gameMap = nullptr;
+	Player* player = nullptr;
+	Raycaster* raycaster = nullptr;
+	Minimap* minimap = nullptr;
+	bool showMinimap = false;
+	bool tabPressed = false; // Для debounce клавиши Tab
 	
 	// Таймер для deltaTime
 	sf::Clock clock;
@@ -47,6 +51,12 @@ int main()
 	while (window.isOpen())
 	{
 		float deltaTime = clock.restart().asSeconds();
+		
+		// Проверка фокуса окна - игра на паузе если окно свернуто
+		if (!window.hasFocus() && gameState == GameState::PLAYING)
+		{
+			deltaTime = 0.0f; // Останавливаем время
+		}
 		
 		// Обработка событий
 		sf::Event event;
@@ -76,6 +86,19 @@ int main()
 						int selected = menu.getSelectedItem();
 						if (selected == 0) // START GAME
 						{
+							// Создаем игровые объекты только при старте игры
+							if (gameMap == nullptr)
+							{
+								gameMap = new Map(31, 31);
+								
+								float spawnX, spawnY;
+								gameMap->getSpawnPosition(spawnX, spawnY);
+								player = new Player(spawnX, spawnY, 0.0f);
+								
+								raycaster = new Raycaster(SCREEN_WIDTH, SCREEN_HEIGHT);
+								minimap = new Minimap(SCREEN_WIDTH, SCREEN_HEIGHT);
+							}
+							
 							gameState = GameState::PLAYING;
 							std::cout << "Game started!" << std::endl;
 						}
@@ -96,6 +119,21 @@ int main()
 						gameState = GameState::MENU;
 						std::cout << "Back to menu" << std::endl;
 					}
+					else if (event.key.code == sf::Keyboard::Tab && !tabPressed)
+					{
+						showMinimap = !showMinimap;
+						tabPressed = true;
+						std::cout << "Minimap " << (showMinimap ? "ON" : "OFF") << std::endl;
+					}
+				}
+			}
+			
+			// Отслеживаем отпускание Tab
+			if (event.type == sf::Event::KeyReleased)
+			{
+				if (event.key.code == sf::Keyboard::Tab)
+				{
+					tabPressed = false;
 				}
 			}
 		}
@@ -122,17 +160,35 @@ int main()
 		}
 		else if (gameState == GameState::PLAYING)
 		{
-			// Обновление игрока
-			player.update(deltaTime, gameMap);
+			// Обновление игрока только если окно в фокусе
+			if (window.hasFocus() && player != nullptr && gameMap != nullptr)
+			{
+				player->update(deltaTime, *gameMap);
+			}
 			
 			// Рендеринг 3D мира через raycasting
-			window.clear(sf::Color(10, 10, 10));
-			raycaster.render(window, player, gameMap);
+			if (raycaster != nullptr && player != nullptr && gameMap != nullptr)
+			{
+				window.clear(sf::Color(10, 10, 10));
+				raycaster->render(window, *player, *gameMap);
+				
+				// Миникарта рисуется ПОВЕРХ 3D мира (если включена)
+				if (showMinimap && minimap != nullptr)
+				{
+					minimap->draw(window, *player, *gameMap);
+				}
+			}
 		}
 
 		// Отображение
 		window.display();
 	}
+	
+	// Очистка памяти
+	delete gameMap;
+	delete player;
+	delete raycaster;
+	delete minimap;
 
 	return 0;
 }

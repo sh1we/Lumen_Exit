@@ -102,6 +102,9 @@ Raycaster::RayHit Raycaster::castRay(float rayAngle, const Player& player, const
 
 void Raycaster::render(sf::RenderWindow& window, const Player& player, const Map& map)
 {
+    // Создаем буфер для отрисовки (оптимизация)
+    sf::VertexArray wallSlices(sf::Quads);
+    
     // Отрисовка каждого вертикального столбца экрана
     for (int x = 0; x < m_screenWidth; ++x)
     {
@@ -130,10 +133,17 @@ void Raycaster::render(sf::RenderWindow& window, const Player& player, const Map
         int colorValue = static_cast<int>(brightness * (hit.hitVertical ? 255 : 180));
         sf::Color wallColor(colorValue, colorValue, colorValue);
         
-        // Рисуем вертикальную линию стены
-        sf::RectangleShape wallSlice(sf::Vector2f(1.0f, static_cast<float>(drawEnd - drawStart)));
-        wallSlice.setPosition(static_cast<float>(x), static_cast<float>(drawStart));
-        wallSlice.setFillColor(wallColor);
-        window.draw(wallSlice);
+        // Добавляем вертикальную линию стены в буфер (используем Quads для оптимизации)
+        float xPos = static_cast<float>(x);
+        float yStart = static_cast<float>(drawStart);
+        float yEnd = static_cast<float>(drawEnd);
+        
+        wallSlices.append(sf::Vertex(sf::Vector2f(xPos, yStart), wallColor));
+        wallSlices.append(sf::Vertex(sf::Vector2f(xPos + 1.0f, yStart), wallColor));
+        wallSlices.append(sf::Vertex(sf::Vector2f(xPos + 1.0f, yEnd), wallColor));
+        wallSlices.append(sf::Vertex(sf::Vector2f(xPos, yEnd), wallColor));
     }
+    
+    // Рисуем все стены одним вызовом (огромная оптимизация!)
+    window.draw(wallSlices);
 }

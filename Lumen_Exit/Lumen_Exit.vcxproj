@@ -94,6 +94,7 @@
     <ClCompile Include="src\Player.cpp" />
     <ClCompile Include="src\Raycaster.cpp" />
     <ClCompile Include="src\LoadingScreen.cpp" />
+    <ClCompile Include="src\Minimap.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Menu.h" />
@@ -101,6 +102,7 @@
     <ClInclude Include="src\Player.h" />
     <ClInclude Include="src\Raycaster.h" />
     <ClInclude Include="src\LoadingScreen.h" />
+    <ClInclude Include="src\Minimap.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
