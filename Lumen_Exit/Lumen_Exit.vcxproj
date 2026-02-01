@@ -90,9 +90,17 @@
   <ItemGroup>
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\Menu.cpp" />
+    <ClCompile Include="src\Map.cpp" />
+    <ClCompile Include="src\Player.cpp" />
+    <ClCompile Include="src\Raycaster.cpp" />
+    <ClCompile Include="src\LoadingScreen.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Menu.h" />
+    <ClInclude Include="src\Map.h" />
+    <ClInclude Include="src\Player.h" />
+    <ClInclude Include="src\Raycaster.h" />
+    <ClInclude Include="src\LoadingScreen.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

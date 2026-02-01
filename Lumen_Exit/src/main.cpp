@@ -1,9 +1,14 @@
 #include <SFML/Graphics.hpp>
 #include <iostream>
 #include "Menu.h"
+#include "Map.h"
+#include "Player.h"
+#include "Raycaster.h"
+#include "LoadingScreen.h"
 
 enum class GameState
 {
+	LOADING,
 	MENU,
 	PLAYING,
 	PAUSED
@@ -20,17 +25,29 @@ int main()
 	window.setFramerateLimit(60);
 
 	std::cout << "Lumen_Exit() initialized successfully!" << std::endl;
-	std::cout << "Use Arrow Keys to navigate, Enter to select, ESC to exit" << std::endl;
 
 	// Состояние игры
-	GameState gameState = GameState::MENU;
+	GameState gameState = GameState::LOADING;
 
+	// Создание загрузочного экрана
+	LoadingScreen loadingScreen(static_cast<float>(SCREEN_WIDTH), static_cast<float>(SCREEN_HEIGHT));
+	
 	// Создание меню
 	Menu menu(static_cast<float>(SCREEN_WIDTH), static_cast<float>(SCREEN_HEIGHT));
+	
+	// Создание игровых объектов
+	Map gameMap(16, 16);
+	Player player(8.0f, 8.0f, 0.0f); // Стартовая позиция в центре карты
+	Raycaster raycaster(SCREEN_WIDTH, SCREEN_HEIGHT);
+	
+	// Таймер для deltaTime
+	sf::Clock clock;
 
 	// Главный игровой цикл
 	while (window.isOpen())
 	{
+		float deltaTime = clock.restart().asSeconds();
+		
 		// Обработка событий
 		sf::Event event;
 		while (window.pollEvent(event))
@@ -40,7 +57,11 @@ int main()
 
 			if (event.type == sf::Event::KeyPressed)
 			{
-				if (gameState == GameState::MENU)
+				if (gameState == GameState::LOADING)
+				{
+					// Загрузочный экран обрабатывает нажатия сам
+				}
+				else if (gameState == GameState::MENU)
 				{
 					if (event.key.code == sf::Keyboard::Up)
 					{
@@ -80,27 +101,33 @@ int main()
 		}
 
 		// Очистка экрана (темный фон)
-		window.clear(sf::Color(10, 10, 10));
+		window.clear(sf::Color(0, 0, 0)); // Полностью черный для загрузки
 
 		// Отрисовка в зависимости от состояния
-		if (gameState == GameState::MENU)
+		if (gameState == GameState::LOADING)
+		{
+			loadingScreen.update(deltaTime);
+			loadingScreen.draw(window);
+			
+			// Переход в меню после завершения загрузки
+			if (loadingScreen.isFinished())
+			{
+				gameState = GameState::MENU;
+				std::cout << "Use Arrow Keys to navigate, Enter to select, ESC to exit" << std::endl;
+			}
+		}
+		else if (gameState == GameState::MENU)
 		{
 			menu.draw(window);
 		}
 		else if (gameState == GameState::PLAYING)
 		{
-			// Временная заглушка для игры
-			sf::Font font;
-			if (font.loadFromFile("C:\\Windows\\Fonts\\cour.ttf"))
-			{
-				sf::Text text;
-				text.setFont(font);
-				text.setString("GAME SCREEN\n\nPress ESC to return to menu");
-				text.setCharacterSize(40);
-				text.setFillColor(sf::Color::White);
-				text.setPosition(400.0f, 300.0f);
-				window.draw(text);
-			}
+			// Обновление игрока
+			player.update(deltaTime, gameMap);
+			
+			// Рендеринг 3D мира через raycasting
+			window.clear(sf::Color(10, 10, 10));
+			raycaster.render(window, player, gameMap);
 		}
 
 		// Отображение
