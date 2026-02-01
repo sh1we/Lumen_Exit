@@ -95,9 +95,9 @@ void Map::generateMaze(unsigned int seed)
         {
             // Находим самую дальнюю комнату от спавна
             int maxDist = 0;
-            int exitRoomIndex = m_rooms.size() - 1;
+            int exitRoomIndex = static_cast<int>(m_rooms.size()) - 1;
             
-            for (size_t i = 1; i < m_rooms.size(); ++i)
+            for (int i = 1; i < static_cast<int>(m_rooms.size()); ++i)
             {
                 int dx = m_rooms[i].centerX() - m_spawnX;
                 int dy = m_rooms[i].centerY() - m_spawnY;

@@ -3,7 +3,7 @@
 #include <sstream>
 #include <iomanip>
 
-VictoryScreen::VictoryScreen(float width, float height, float completionTime)
+VictoryScreen::VictoryScreen(float width, float height, float completionTime, float bestTime)
     : m_timer(0.0f)
     , m_currentLine(0)
     , m_finished(false)
@@ -23,6 +23,25 @@ VictoryScreen::VictoryScreen(float width, float height, float completionTime)
     timeStr << std::setfill('0') << std::setw(2) << minutes << ":" 
             << std::setfill('0') << std::setw(2) << seconds;
     
+    // Форматируем лучшее время
+    std::string bestTimeStr;
+    if (bestTime < 999999.0f)
+    {
+        int bestMinutes = static_cast<int>(bestTime) / 60;
+        int bestSeconds = static_cast<int>(bestTime) % 60;
+        std::ostringstream bestStr;
+        bestStr << std::setfill('0') << std::setw(2) << bestMinutes << ":" 
+                << std::setfill('0') << std::setw(2) << bestSeconds;
+        bestTimeStr = bestStr.str();
+    }
+    else
+    {
+        bestTimeStr = "--:--";
+    }
+    
+    // Проверяем, новый ли это рекорд
+    bool isNewRecord = (completionTime < bestTime);
+    
     // Текст победы в стиле терминала
     m_lines.push_back("> call Exit()");
     m_lines.push_back("");
@@ -31,7 +50,19 @@ VictoryScreen::VictoryScreen(float width, float height, float completionTime)
     m_lines.push_back("");
     m_lines.push_back("=== STATISTICS ===");
     m_lines.push_back("Time: " + timeStr.str());
-    m_lines.push_back("Status: ESCAPED");
+    m_lines.push_back("Best: " + bestTimeStr);
+    if (isNewRecord && bestTime < 999999.0f)
+    {
+        m_lines.push_back("Status: NEW RECORD!");
+    }
+    else if (isNewRecord)
+    {
+        m_lines.push_back("Status: FIRST ESCAPE!");
+    }
+    else
+    {
+        m_lines.push_back("Status: ESCAPED");
+    }
     m_lines.push_back("");
     m_lines.push_back("> Memory freed successfully.");
     m_lines.push_back("> Press any key to return to menu...");

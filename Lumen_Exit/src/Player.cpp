@@ -142,25 +142,45 @@ void Player::update(float deltaTime, const Map& map)
     
     handleInput(deltaTime);
     
-    // Проверка коллизий - используем очень маленький радиус
-    const float playerRadius = 0.1f;
+    // Проверка коллизий - используем маленький радиус
+    const float playerRadius = 0.15f;
     
-    // Проверяем коллизию отдельно по X и Y для скольжения вдоль стен
-    bool collisionX = map.isWall(static_cast<int>(m_x + playerRadius), static_cast<int>(oldY)) ||
-                      map.isWall(static_cast<int>(m_x - playerRadius), static_cast<int>(oldY));
+    // Проверяем все 4 угла игрока + центр для более точной коллизии
+    auto checkCollision = [&](float x, float y) -> bool {
+        // Проверяем 4 угла вокруг позиции
+        return map.isWall(static_cast<int>(x + playerRadius), static_cast<int>(y + playerRadius)) ||
+               map.isWall(static_cast<int>(x - playerRadius), static_cast<int>(y + playerRadius)) ||
+               map.isWall(static_cast<int>(x + playerRadius), static_cast<int>(y - playerRadius)) ||
+               map.isWall(static_cast<int>(x - playerRadius), static_cast<int>(y - playerRadius));
+    };
     
-    bool collisionY = map.isWall(static_cast<int>(oldX), static_cast<int>(m_y + playerRadius)) ||
-                      map.isWall(static_cast<int>(oldX), static_cast<int>(m_y - playerRadius));
+    // Проверяем новую позицию
+    bool fullCollision = checkCollision(m_x, m_y);
     
-    // Скольжение вдоль стен
-    if (collisionX)
+    if (fullCollision)
     {
-        m_x = oldX;
-    }
-    
-    if (collisionY)
-    {
-        m_y = oldY;
+        // Пробуем скользить только по X
+        bool collisionX = checkCollision(m_x, oldY);
+        
+        // Пробуем скользить только по Y
+        bool collisionY = checkCollision(oldX, m_y);
+        
+        if (collisionX && collisionY)
+        {
+            // Коллизия с обеих сторон - возвращаемся на старую позицию
+            m_x = oldX;
+            m_y = oldY;
+        }
+        else if (collisionX)
+        {
+            // Коллизия по X - скользим по Y
+            m_x = oldX;
+        }
+        else if (collisionY)
+        {
+            // Коллизия по Y - скользим по X
+            m_y = oldY;
+        }
     }
     
     // Отмечаем текущую клетку как посещенную
@@ -193,4 +213,22 @@ void Player::update(float deltaTime, const Map& map)
             break;
         }
     }
+}
+
+bool Player::isInRoom(const Map& map) const
+{
+    int tileX = static_cast<int>(m_x);
+    int tileY = static_cast<int>(m_y);
+    
+    const std::vector<Room>& rooms = map.getRooms();
+    for (const auto& room : rooms)
+    {
+        if (tileX >= room.x && tileX < room.x + room.width &&
+            tileY >= room.y && tileY < room.y + room.height)
+        {
+            return true;
+        }
+    }
+    
+    return false;
 }

@@ -3,21 +3,58 @@
 #include <sstream>
 #include <iomanip>
 
-SettingsMenu::SettingsMenu(float width, float height, float& sensitivity)
+SettingsMenu::SettingsMenu(float width, float height, GameConfig& config)
     : m_width(width)
     , m_height(height)
-    , m_sensitivity(sensitivity)
-    , m_barWidth(400.0f)
-    , m_barHeight(20.0f)
+    , m_config(config)
+    , m_selectedOption(0)
+    , m_needsRestart(false)
 {
     if (!m_font.loadFromFile("C:\\Windows\\Fonts\\cour.ttf"))
     {
         std::cerr << "Error loading font for settings menu!" << std::endl;
     }
     
-    // Вычисляем позицию слайдера
-    m_barX = m_width / 2.0f - m_barWidth / 2.0f;
-    m_barY = m_height / 2.0f + 60.0f;
+    // Доступные разрешения
+    m_resolutions = {
+        {1280, 720},
+        {1600, 900},
+        {1920, 1080},
+        {2560, 1440}
+    };
+    
+    // Доступные FPS
+    m_fpsOptions = {30, 60, 120, 144, 240};
+    
+    findCurrentResolution();
+    findCurrentFps();
+}
+
+void SettingsMenu::findCurrentResolution()
+{
+    m_currentResolutionIndex = 0;
+    for (size_t i = 0; i < m_resolutions.size(); ++i)
+    {
+        if (m_resolutions[i].width == m_config.screenWidth &&
+            m_resolutions[i].height == m_config.screenHeight)
+        {
+            m_currentResolutionIndex = static_cast<int>(i);
+            break;
+        }
+    }
+}
+
+void SettingsMenu::findCurrentFps()
+{
+    m_currentFpsIndex = 1; // По умолчанию 60
+    for (size_t i = 0; i < m_fpsOptions.size(); ++i)
+    {
+        if (m_fpsOptions[i] == m_config.targetFPS)
+        {
+            m_currentFpsIndex = static_cast<int>(i);
+            break;
+        }
+    }
 }
 
 void SettingsMenu::draw(sf::RenderWindow& window)
@@ -32,119 +69,224 @@ void SettingsMenu::draw(sf::RenderWindow& window)
     
     sf::FloatRect titleRect = title.getLocalBounds();
     title.setOrigin(titleRect.left + titleRect.width / 2.0f, titleRect.top + titleRect.height / 2.0f);
-    title.setPosition(sf::Vector2f(m_width / 2.0f, 150.0f));
+    title.setPosition(sf::Vector2f(m_width / 2.0f, 100.0f));
     window.draw(title);
     
-    // Чувствительность мыши
-    std::ostringstream sensStr;
-    sensStr << "Mouse Sensitivity: " << std::fixed << std::setprecision(3) << m_sensitivity;
+    float yPos = 200.0f;
     
-    sf::Text sensText;
-    sensText.setFont(m_font);
-    sensText.setString(sensStr.str());
-    sensText.setCharacterSize(30);
-    sensText.setFillColor(sf::Color(200, 200, 200));
+    // 1. Чувствительность мыши
+    {
+        std::ostringstream sensStr;
+        sensStr << "Mouse Sensitivity: " << std::fixed << std::setprecision(3) << m_config.mouseSensitivity;
+        
+        sf::Text sensText;
+        sensText.setFont(m_font);
+        sensText.setString(sensStr.str());
+        sensText.setCharacterSize(24);
+        sensText.setFillColor(m_selectedOption == 0 ? sf::Color(255, 255, 100) : sf::Color(200, 200, 200));
+        
+        sf::FloatRect sensRect = sensText.getLocalBounds();
+        sensText.setOrigin(sensRect.left + sensRect.width / 2.0f, sensRect.top + sensRect.height / 2.0f);
+        sensText.setPosition(sf::Vector2f(m_width / 2.0f, yPos));
+        window.draw(sensText);
+        
+        // Бар чувствительности
+        float barWidth = 400.0f;
+        float barHeight = 15.0f;
+        float barX = m_width / 2.0f - barWidth / 2.0f;
+        float barY = yPos + 30.0f;
+        
+        sf::RectangleShape barBg(sf::Vector2f(barWidth, barHeight));
+        barBg.setPosition(barX, barY);
+        barBg.setFillColor(sf::Color(50, 50, 50));
+        barBg.setOutlineColor(m_selectedOption == 0 ? sf::Color(255, 255, 100) : sf::Color(150, 150, 150));
+        barBg.setOutlineThickness(2.0f);
+        window.draw(barBg);
+        
+        float minSens = 0.0005f;
+        float maxSens = 0.005f;
+        float sensPercent = (m_config.mouseSensitivity - minSens) / (maxSens - minSens);
+        sensPercent = std::max(0.0f, std::min(1.0f, sensPercent));
+        
+        sf::RectangleShape barFill(sf::Vector2f(barWidth * sensPercent, barHeight));
+        barFill.setPosition(barX, barY);
+        barFill.setFillColor(sf::Color(100, 200, 100));
+        window.draw(barFill);
+        
+        yPos += 80.0f;
+    }
     
-    sf::FloatRect sensRect = sensText.getLocalBounds();
-    sensText.setOrigin(sensRect.left + sensRect.width / 2.0f, sensRect.top + sensRect.height / 2.0f);
-    sensText.setPosition(sf::Vector2f(m_width / 2.0f, m_height / 2.0f - 50.0f));
-    window.draw(sensText);
+    // 2. Разрешение
+    {
+        std::ostringstream resStr;
+        resStr << "Resolution: " << m_resolutions[m_currentResolutionIndex].width 
+               << "x" << m_resolutions[m_currentResolutionIndex].height;
+        
+        sf::Text resText;
+        resText.setFont(m_font);
+        resText.setString(resStr.str());
+        resText.setCharacterSize(24);
+        resText.setFillColor(m_selectedOption == 1 ? sf::Color(255, 255, 100) : sf::Color(200, 200, 200));
+        
+        sf::FloatRect resRect = resText.getLocalBounds();
+        resText.setOrigin(resRect.left + resRect.width / 2.0f, resRect.top + resRect.height / 2.0f);
+        resText.setPosition(sf::Vector2f(m_width / 2.0f, yPos));
+        window.draw(resText);
+        
+        yPos += 50.0f;
+    }
     
-    // Подсказки управления
-    sf::Text hint1;
-    hint1.setFont(m_font);
-    hint1.setString("Use LEFT/RIGHT arrows or click on the bar");
-    hint1.setCharacterSize(20);
-    hint1.setFillColor(sf::Color(150, 150, 150));
+    // 3. FPS
+    {
+        std::ostringstream fpsStr;
+        fpsStr << "Target FPS: " << m_fpsOptions[m_currentFpsIndex];
+        
+        sf::Text fpsText;
+        fpsText.setFont(m_font);
+        fpsText.setString(fpsStr.str());
+        fpsText.setCharacterSize(24);
+        fpsText.setFillColor(m_selectedOption == 2 ? sf::Color(255, 255, 100) : sf::Color(200, 200, 200));
+        
+        sf::FloatRect fpsRect = fpsText.getLocalBounds();
+        fpsText.setOrigin(fpsRect.left + fpsRect.width / 2.0f, fpsRect.top + fpsRect.height / 2.0f);
+        fpsText.setPosition(sf::Vector2f(m_width / 2.0f, yPos));
+        window.draw(fpsText);
+        
+        yPos += 50.0f;
+    }
     
-    sf::FloatRect hint1Rect = hint1.getLocalBounds();
-    hint1.setOrigin(hint1Rect.left + hint1Rect.width / 2.0f, hint1Rect.top + hint1Rect.height / 2.0f);
-    hint1.setPosition(sf::Vector2f(m_width / 2.0f, m_height / 2.0f + 20.0f));
-    window.draw(hint1);
+    // 4. Fullscreen
+    {
+        std::ostringstream fullscreenStr;
+        fullscreenStr << "Fullscreen: " << (m_config.fullscreen ? "ON" : "OFF");
+        
+        sf::Text fullscreenText;
+        fullscreenText.setFont(m_font);
+        fullscreenText.setString(fullscreenStr.str());
+        fullscreenText.setCharacterSize(24);
+        fullscreenText.setFillColor(m_selectedOption == 3 ? sf::Color(255, 255, 100) : sf::Color(200, 200, 200));
+        
+        sf::FloatRect fullscreenRect = fullscreenText.getLocalBounds();
+        fullscreenText.setOrigin(fullscreenRect.left + fullscreenRect.width / 2.0f, fullscreenRect.top + fullscreenRect.height / 2.0f);
+        fullscreenText.setPosition(sf::Vector2f(m_width / 2.0f, yPos));
+        window.draw(fullscreenText);
+        
+        yPos += 80.0f;
+    }
     
-    // Визуальный бар чувствительности
-    m_barX = m_width / 2.0f - m_barWidth / 2.0f;
-    m_barY = m_height / 2.0f + 60.0f;
+    // Подсказки
+    sf::Text hint;
+    hint.setFont(m_font);
+    hint.setString("UP/DOWN: Select | LEFT/RIGHT: Change | ESC: Back");
+    hint.setCharacterSize(18);
+    hint.setFillColor(sf::Color(150, 150, 150));
     
-    // Фон бара
-    sf::RectangleShape barBg(sf::Vector2f(m_barWidth, m_barHeight));
-    barBg.setPosition(m_barX, m_barY);
-    barBg.setFillColor(sf::Color(50, 50, 50));
-    barBg.setOutlineColor(sf::Color(150, 150, 150));
-    barBg.setOutlineThickness(2.0f);
-    window.draw(barBg);
+    sf::FloatRect hintRect = hint.getLocalBounds();
+    hint.setOrigin(hintRect.left + hintRect.width / 2.0f, hintRect.top + hintRect.height / 2.0f);
+    hint.setPosition(sf::Vector2f(m_width / 2.0f, m_height - 80.0f));
+    window.draw(hint);
     
-    // Заполнение бара (0.0005 - 0.005 диапазон)
-    float minSens = 0.0005f;
-    float maxSens = 0.005f;
-    float sensPercent = (m_sensitivity - minSens) / (maxSens - minSens);
-    sensPercent = std::max(0.0f, std::min(1.0f, sensPercent));
-    
-    sf::RectangleShape barFill(sf::Vector2f(m_barWidth * sensPercent, m_barHeight));
-    barFill.setPosition(m_barX, m_barY);
-    barFill.setFillColor(sf::Color(100, 200, 100));
-    window.draw(barFill);
-    
-    // Подсказка выхода
-    sf::Text hint2;
-    hint2.setFont(m_font);
-    hint2.setString("Press ESC to return to menu");
-    hint2.setCharacterSize(20);
-    hint2.setFillColor(sf::Color(150, 150, 150));
-    
-    sf::FloatRect hint2Rect = hint2.getLocalBounds();
-    hint2.setOrigin(hint2Rect.left + hint2Rect.width / 2.0f, hint2Rect.top + hint2Rect.height / 2.0f);
-    hint2.setPosition(sf::Vector2f(m_width / 2.0f, m_height - 100.0f));
-    window.draw(hint2);
+    // Предупреждение о рестарте
+    if (m_needsRestart)
+    {
+        sf::Text warning;
+        warning.setFont(m_font);
+        warning.setString("Restart required for changes to take effect");
+        warning.setCharacterSize(20);
+        warning.setFillColor(sf::Color(255, 100, 100));
+        
+        sf::FloatRect warnRect = warning.getLocalBounds();
+        warning.setOrigin(warnRect.left + warnRect.width / 2.0f, warnRect.top + warnRect.height / 2.0f);
+        warning.setPosition(sf::Vector2f(m_width / 2.0f, m_height - 50.0f));
+        window.draw(warning);
+    }
 }
 
 void SettingsMenu::handleInput(sf::Keyboard::Key key)
 {
-    if (key == sf::Keyboard::Left)
+    if (key == sf::Keyboard::Up)
     {
-        m_sensitivity -= 0.0002f;
-        if (m_sensitivity < 0.0005f)
-            m_sensitivity = 0.0005f;
+        m_selectedOption = (m_selectedOption - 1 + 4) % 4;
+    }
+    else if (key == sf::Keyboard::Down)
+    {
+        m_selectedOption = (m_selectedOption + 1) % 4;
+    }
+    else if (key == sf::Keyboard::Left)
+    {
+        if (m_selectedOption == 0) // Sensitivity
+        {
+            m_config.mouseSensitivity -= 0.0002f;
+            if (m_config.mouseSensitivity < 0.0005f)
+                m_config.mouseSensitivity = 0.0005f;
+            m_config.saveToFile("config.txt");
+        }
+        else if (m_selectedOption == 1) // Resolution
+        {
+            m_currentResolutionIndex = (m_currentResolutionIndex - 1 + static_cast<int>(m_resolutions.size())) % static_cast<int>(m_resolutions.size());
+            m_config.screenWidth = m_resolutions[m_currentResolutionIndex].width;
+            m_config.screenHeight = m_resolutions[m_currentResolutionIndex].height;
+            m_config.saveToFile("config.txt");
+            m_needsRestart = true;
+        }
+        else if (m_selectedOption == 2) // FPS
+        {
+            m_currentFpsIndex = (m_currentFpsIndex - 1 + static_cast<int>(m_fpsOptions.size())) % static_cast<int>(m_fpsOptions.size());
+            m_config.targetFPS = m_fpsOptions[m_currentFpsIndex];
+            m_config.saveToFile("config.txt");
+            m_needsRestart = true;
+        }
+        else if (m_selectedOption == 3) // Fullscreen
+        {
+            m_config.fullscreen = !m_config.fullscreen;
+            m_config.saveToFile("config.txt");
+            m_needsRestart = true;
+        }
     }
     else if (key == sf::Keyboard::Right)
     {
-        m_sensitivity += 0.0002f;
-        if (m_sensitivity > 0.005f)
-            m_sensitivity = 0.005f;
+        if (m_selectedOption == 0) // Sensitivity
+        {
+            m_config.mouseSensitivity += 0.0002f;
+            if (m_config.mouseSensitivity > 0.005f)
+                m_config.mouseSensitivity = 0.005f;
+            m_config.saveToFile("config.txt");
+        }
+        else if (m_selectedOption == 1) // Resolution
+        {
+            m_currentResolutionIndex = (m_currentResolutionIndex + 1) % static_cast<int>(m_resolutions.size());
+            m_config.screenWidth = m_resolutions[m_currentResolutionIndex].width;
+            m_config.screenHeight = m_resolutions[m_currentResolutionIndex].height;
+            m_config.saveToFile("config.txt");
+            m_needsRestart = true;
+        }
+        else if (m_selectedOption == 2) // FPS
+        {
+            m_currentFpsIndex = (m_currentFpsIndex + 1) % static_cast<int>(m_fpsOptions.size());
+            m_config.targetFPS = m_fpsOptions[m_currentFpsIndex];
+            m_config.saveToFile("config.txt");
+            m_needsRestart = true;
+        }
+        else if (m_selectedOption == 3) // Fullscreen
+        {
+            m_config.fullscreen = !m_config.fullscreen;
+            m_config.saveToFile("config.txt");
+            m_needsRestart = true;
+        }
     }
-}
-
-void SettingsMenu::updateSensitivityFromMouse(float mouseX)
-{
-    // Вычисляем процент от позиции мыши на слайдере
-    float percent = (mouseX - m_barX) / m_barWidth;
-    percent = std::max(0.0f, std::min(1.0f, percent));
-    
-    // Конвертируем в значение чувствительности
-    float minSens = 0.0005f;
-    float maxSens = 0.005f;
-    m_sensitivity = minSens + percent * (maxSens - minSens);
 }
 
 void SettingsMenu::handleMouseClick(const sf::Vector2i& mousePos)
 {
-    // Проверяем, кликнули ли на слайдер
-    if (mousePos.x >= m_barX && mousePos.x <= m_barX + m_barWidth &&
-        mousePos.y >= m_barY && mousePos.y <= m_barY + m_barHeight)
-    {
-        updateSensitivityFromMouse(static_cast<float>(mousePos.x));
-    }
+    // Пока оставим пустым, можно добавить клик по опциям
 }
 
 void SettingsMenu::handleMouseMove(const sf::Vector2i& mousePos, bool isPressed)
 {
-    // Если зажата кнопка мыши и курсор над слайдером, обновляем значение
-    if (isPressed)
-    {
-        if (mousePos.x >= m_barX - 10 && mousePos.x <= m_barX + m_barWidth + 10 &&
-            mousePos.y >= m_barY - 10 && mousePos.y <= m_barY + m_barHeight + 10)
-        {
-            updateSensitivityFromMouse(static_cast<float>(mousePos.x));
-        }
-    }
+    // Пока оставим пустым
+}
+
+void SettingsMenu::updateSensitivityFromMouse(float mouseX)
+{
+    // Пока оставим пустым
 }

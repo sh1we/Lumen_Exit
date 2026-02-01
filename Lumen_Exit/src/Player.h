@@ -23,6 +23,9 @@ public:
     bool hasReachedExit() const { return m_reachedExit; }
     void setReachedExit(bool reached) { m_reachedExit = reached; }
     
+    // Проверка нахождения в комнате
+    bool isInRoom(const Map& map) const;
+    
     float getStamina() const { return m_stamina; }
     float getMaxStamina() const { return m_maxStamina; }
     float getStaminaPercent() const { return (m_stamina / m_maxStamina) * 100.0f; }

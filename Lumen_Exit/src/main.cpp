@@ -9,6 +9,9 @@
 #include "VictoryScreen.h"
 #include "HUD.h"
 #include "SettingsMenu.h"
+#include "LightSystem.h"
+#include "PostProcessing.h"
+#include "Config.h"
 
 enum class GameState
 {
@@ -22,34 +25,37 @@ enum class GameState
 
 int main()
 {
-	// Параметры окна
-	const int SCREEN_WIDTH = 1280;
-	const int SCREEN_HEIGHT = 720;
+	// Загрузка конфигурации
+	GameConfig config;
+	config.loadFromFile("config.txt");
 
-	// Создание окна
-	sf::RenderWindow window(sf::VideoMode(SCREEN_WIDTH, SCREEN_HEIGHT), "Lumen_Exit()");
-	window.setFramerateLimit(60);
+	// Создание окна с настройками из конфига
+	sf::Uint32 style = config.fullscreen ? sf::Style::Fullscreen : sf::Style::Close;
+	sf::RenderWindow window(sf::VideoMode(config.screenWidth, config.screenHeight), "Lumen_Exit()", style);
+	window.setFramerateLimit(config.targetFPS);
 
 	std::cout << "Lumen_Exit() initialized successfully!" << std::endl;
+	std::cout << "Resolution: " << config.screenWidth << "x" << config.screenHeight << std::endl;
+	std::cout << "Target FPS: " << config.targetFPS << std::endl;
+	std::cout << "Fullscreen: " << (config.fullscreen ? "YES" : "NO") << std::endl;
 
 	// Состояние игры
 	GameState gameState = GameState::LOADING;
 	GameState previousState = GameState::LOADING; // Для возврата из настроек
 
 	// Создание загрузочного экрана
-	LoadingScreen loadingScreen(static_cast<float>(SCREEN_WIDTH), static_cast<float>(SCREEN_HEIGHT));
+	LoadingScreen loadingScreen(static_cast<float>(config.screenWidth), static_cast<float>(config.screenHeight));
 	
 	// Создание меню
-	Menu menu(static_cast<float>(SCREEN_WIDTH), static_cast<float>(SCREEN_HEIGHT));
+	Menu menu(static_cast<float>(config.screenWidth), static_cast<float>(config.screenHeight));
 	
-	// Управление мышкой (объявляем ДО создания settingsMenu)
+	// Управление мышкой
 	bool mouseControlEnabled = true;
-	float mouseSensitivity = 0.001f; // Уменьшил чувствительность (было 0.002)
 	sf::Vector2i lastMousePos;
 	bool firstMouse = true;
 	
-	// Создание меню настроек (после объявления mouseSensitivity)
-	SettingsMenu settingsMenu(static_cast<float>(SCREEN_WIDTH), static_cast<float>(SCREEN_HEIGHT), mouseSensitivity);
+	// Создание меню настроек с передачей конфига
+	SettingsMenu settingsMenu(static_cast<float>(config.screenWidth), static_cast<float>(config.screenHeight), config);
 	
 	// Игровые объекты (создаются только при старте игры)
 	Map* gameMap = nullptr;
@@ -58,9 +64,12 @@ int main()
 	Minimap* minimap = nullptr;
 	VictoryScreen* victoryScreen = nullptr;
 	HUD* hud = nullptr;
+	LightSystem* lightSystem = nullptr;
+	PostProcessing* postProcessing = nullptr;
 	bool showMinimap = false;
 	bool tabPressed = false; // Для debounce клавиши Tab
 	bool escPressed = false; // Для debounce клавиши ESC в настройках
+	bool fPressed = false;   // Для debounce клавиши F (фонарик)
 	
 	// Таймер для deltaTime и игрового времени
 	sf::Clock clock;
@@ -113,36 +122,104 @@ int main()
 					else if (event.key.code == sf::Keyboard::Enter)
 					{
 						int selected = menu.getSelectedItem();
-						if (selected == 0) // START GAME
+						
+						if (menu.isInGameMode())
 						{
-							// Создаем игровые объекты только при старте игры
-							if (gameMap == nullptr)
+							// Меню во время игры: CONTINUE, NEW GAME, SETTINGS, EXIT
+							if (selected == 0) // CONTINUE
 							{
-								gameMap = new Map(51, 51); // Увеличили карту до 51x51
+								gameState = GameState::PLAYING;
+								window.setMouseCursorVisible(false);
+								firstMouse = true;
+								std::cout << "Game continued!" << std::endl;
+							}
+							else if (selected == 1) // NEW GAME
+							{
+								// Удаляем старую игру
+								delete gameMap;
+								delete player;
+								delete raycaster;
+								delete minimap;
+								delete hud;
+								delete lightSystem;
+								delete postProcessing;
+								
+								// Создаем новую игру
+								gameMap = new Map(51, 51);
 								
 								float spawnX, spawnY;
 								gameMap->getSpawnPosition(spawnX, spawnY);
 								player = new Player(spawnX, spawnY, 0.0f);
 								
-								raycaster = new Raycaster(SCREEN_WIDTH, SCREEN_HEIGHT);
-								minimap = new Minimap(SCREEN_WIDTH, SCREEN_HEIGHT);
-								hud = new HUD(SCREEN_WIDTH, SCREEN_HEIGHT);
+								raycaster = new Raycaster(config.screenWidth, config.screenHeight);
+								minimap = new Minimap(config.screenWidth, config.screenHeight);
+								hud = new HUD(config.screenWidth, config.screenHeight);
+								
+								lightSystem = new LightSystem();
+								lightSystem->addRoomLights(*gameMap);
+								
+								postProcessing = new PostProcessing(config.screenWidth, config.screenHeight);
+								
+								gameTime = 0.0f;
+								gameState = GameState::PLAYING;
+								window.setMouseCursorVisible(false);
+								firstMouse = true;
+								std::cout << "New game started!" << std::endl;
 							}
-							
-							gameState = GameState::PLAYING;
-							gameTime = 0.0f; // Сбрасываем таймер
-							firstMouse = true; // Сбрасываем флаг мыши
-							window.setMouseCursorVisible(false); // Скрываем курсор
-							std::cout << "Game started!" << std::endl;
+							else if (selected == 2) // SETTINGS
+							{
+								previousState = GameState::MENU;
+								gameState = GameState::SETTINGS;
+							}
+							else if (selected == 3) // EXIT
+							{
+								window.close();
+							}
 						}
-						else if (selected == 1) // SETTINGS
+						else
 						{
-							previousState = GameState::MENU;
-							gameState = GameState::SETTINGS;
-						}
-						else if (selected == 2) // EXIT
-						{
-							window.close();
+							// Меню до начала игры: START GAME, SETTINGS, EXIT
+							if (selected == 0) // START GAME
+							{
+								// Создаем игровые объекты только при старте игры
+								if (gameMap == nullptr)
+								{
+									gameMap = new Map(51, 51); // Увеличили карту до 51x51
+									
+									float spawnX, spawnY;
+									gameMap->getSpawnPosition(spawnX, spawnY);
+									player = new Player(spawnX, spawnY, 0.0f);
+									
+									raycaster = new Raycaster(config.screenWidth, config.screenHeight);
+									minimap = new Minimap(config.screenWidth, config.screenHeight);
+									hud = new HUD(config.screenWidth, config.screenHeight);
+									
+									// Создаем систему освещения и добавляем свет в комнаты
+									lightSystem = new LightSystem();
+									lightSystem->addRoomLights(*gameMap);
+									
+									// Создаем пост-обработку
+									postProcessing = new PostProcessing(config.screenWidth, config.screenHeight);
+									
+									// ИСПРАВЛЕНИЕ: Сбрасываем таймер только при создании новой игры
+									gameTime = 0.0f;
+								}
+								
+								gameState = GameState::PLAYING;
+								menu.setInGameMode(true); // Переключаем меню в режим "во время игры"
+								firstMouse = true; // Сбрасываем флаг мыши
+								window.setMouseCursorVisible(false); // Скрываем курсор
+								std::cout << "Game started!" << std::endl;
+							}
+							else if (selected == 1) // SETTINGS
+							{
+								previousState = GameState::MENU;
+								gameState = GameState::SETTINGS;
+							}
+							else if (selected == 2) // EXIT
+							{
+								window.close();
+							}
 						}
 					}
 					else if (event.key.code == sf::Keyboard::Escape)
@@ -155,6 +232,7 @@ int main()
 					if (event.key.code == sf::Keyboard::Escape)
 					{
 						gameState = GameState::MENU;
+						menu.setInGameMode(true); // Показываем меню "во время игры"
 						window.setMouseCursorVisible(true); // Показываем курсор
 						std::cout << "Back to menu" << std::endl;
 					}
@@ -163,6 +241,15 @@ int main()
 						showMinimap = !showMinimap;
 						tabPressed = true;
 						std::cout << "Minimap " << (showMinimap ? "ON" : "OFF") << std::endl;
+					}
+					else if (event.key.code == sf::Keyboard::F && !fPressed)
+					{
+						if (lightSystem != nullptr)
+						{
+							lightSystem->setFlashlightEnabled(!lightSystem->isFlashlightEnabled());
+							fPressed = true;
+							std::cout << "Flashlight " << (lightSystem->isFlashlightEnabled() ? "ON" : "OFF") << std::endl;
+						}
 					}
 				}
 			}
@@ -177,36 +264,104 @@ int main()
 					{
 						// Обрабатываем выбор как Enter
 						int selected = menu.getSelectedItem();
-						if (selected == 0) // START GAME
+						
+						if (menu.isInGameMode())
 						{
-							// Создаем игровые объекты только при старте игры
-							if (gameMap == nullptr)
+							// Меню во время игры
+							if (selected == 0) // CONTINUE
 							{
+								gameState = GameState::PLAYING;
+								window.setMouseCursorVisible(false);
+								firstMouse = true;
+								std::cout << "Game continued!" << std::endl;
+							}
+							else if (selected == 1) // NEW GAME
+							{
+								// Удаляем старую игру
+								delete gameMap;
+								delete player;
+								delete raycaster;
+								delete minimap;
+								delete hud;
+								delete lightSystem;
+								delete postProcessing;
+								
+								// Создаем новую игру
 								gameMap = new Map(51, 51);
 								
 								float spawnX, spawnY;
 								gameMap->getSpawnPosition(spawnX, spawnY);
 								player = new Player(spawnX, spawnY, 0.0f);
 								
-								raycaster = new Raycaster(SCREEN_WIDTH, SCREEN_HEIGHT);
-								minimap = new Minimap(SCREEN_WIDTH, SCREEN_HEIGHT);
-								hud = new HUD(SCREEN_WIDTH, SCREEN_HEIGHT);
+								raycaster = new Raycaster(config.screenWidth, config.screenHeight);
+								minimap = new Minimap(config.screenWidth, config.screenHeight);
+								hud = new HUD(config.screenWidth, config.screenHeight);
+								
+								lightSystem = new LightSystem();
+								lightSystem->addRoomLights(*gameMap);
+								
+								postProcessing = new PostProcessing(config.screenWidth, config.screenHeight);
+								
+								gameTime = 0.0f;
+								gameState = GameState::PLAYING;
+								window.setMouseCursorVisible(false);
+								firstMouse = true;
+								std::cout << "New game started!" << std::endl;
 							}
-							
-							gameState = GameState::PLAYING;
-							gameTime = 0.0f;
-							firstMouse = true;
-							window.setMouseCursorVisible(false);
-							std::cout << "Game started!" << std::endl;
+							else if (selected == 2) // SETTINGS
+							{
+								previousState = GameState::MENU;
+								gameState = GameState::SETTINGS;
+							}
+							else if (selected == 3) // EXIT
+							{
+								window.close();
+							}
 						}
-						else if (selected == 1) // SETTINGS
+						else
 						{
-							previousState = GameState::MENU;
-							gameState = GameState::SETTINGS;
-						}
-						else if (selected == 2) // EXIT
-						{
-							window.close();
+							// Меню до начала игры
+							if (selected == 0) // START GAME
+							{
+								// Создаем игровые объекты только при старте игры
+								if (gameMap == nullptr)
+								{
+									gameMap = new Map(51, 51);
+									
+									float spawnX, spawnY;
+									gameMap->getSpawnPosition(spawnX, spawnY);
+									player = new Player(spawnX, spawnY, 0.0f);
+									
+									raycaster = new Raycaster(config.screenWidth, config.screenHeight);
+									minimap = new Minimap(config.screenWidth, config.screenHeight);
+									hud = new HUD(config.screenWidth, config.screenHeight);
+									
+									// Создаем систему освещения
+									lightSystem = new LightSystem();
+									lightSystem->addRoomLights(*gameMap);
+									
+									// Создаем пост-обработку
+									postProcessing = new PostProcessing(config.screenWidth, config.screenHeight);
+									
+									// ИСПРАВЛЕНИЕ: Сбрасываем таймер только при создании новой игры
+									gameTime = 0.0f;
+								}
+								
+								gameState = GameState::PLAYING;
+								menu.setInGameMode(true);
+								firstMouse = true;
+								window.setMouseCursorVisible(false);
+								std::cout << "Game started!" << std::endl;
+							}
+							else if (selected == 1) // SETTINGS
+							{
+								previousState = GameState::MENU;
+								gameState = GameState::SETTINGS;
+							}
+							else if (selected == 2) // EXIT
+							{
+								window.close();
+							}
 						}
 					}
 				}
@@ -244,6 +399,10 @@ int main()
 				{
 					escPressed = false;
 				}
+				else if (event.key.code == sf::Keyboard::F)
+				{
+					fPressed = false;
+				}
 			}
 		}
 
@@ -274,7 +433,7 @@ int main()
 		else if (gameState == GameState::PLAYING)
 		{
 			// Обновление игрока только если окно в фокусе
-			if (window.hasFocus() && player != nullptr && gameMap != nullptr)
+			if (window.hasFocus() && player != nullptr && gameMap != nullptr && lightSystem != nullptr)
 			{
 				// Управление мышкой
 				if (mouseControlEnabled)
@@ -291,17 +450,23 @@ int main()
 					
 					if (deltaX != 0.0f)
 					{
-						player->handleMouseMovement(deltaX, mouseSensitivity);
+						player->handleMouseMovement(deltaX, config.mouseSensitivity);
 					}
 					
 					// Возвращаем курсор в центр окна для непрерывного вращения
-					sf::Vector2i center(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2);
+					sf::Vector2i center(config.screenWidth / 2, config.screenHeight / 2);
 					sf::Mouse::setPosition(center, window);
 					lastMousePos = center;
 				}
 				
 				player->update(deltaTime, *gameMap);
 				gameTime += deltaTime; // Считаем время прохождения
+				
+				// Проверяем, находится ли игрок в safe комнате
+				bool inSafeRoom = player->isInRoom(*gameMap);
+				
+				// Обновляем фонарик (зарядка в комнате, разрядка при использовании)
+				lightSystem->updateFlashlight(deltaTime, lightSystem->isFlashlightEnabled(), inSafeRoom);
 				
 				// Проверяем, достиг ли игрок выхода
 				if (player->hasReachedExit())
@@ -311,11 +476,16 @@ int main()
 					std::cout << "    Time: " << static_cast<int>(gameTime) << " seconds" << std::endl;
 					std::cout << "==================================" << std::endl;
 					
+					// Обновляем лучшее время
+					config.updateBestTime(gameTime);
+					config.saveToFile("config.txt");
+					
 					// Создаем экран победы
 					victoryScreen = new VictoryScreen(
-						static_cast<float>(SCREEN_WIDTH), 
-						static_cast<float>(SCREEN_HEIGHT),
-						gameTime
+						static_cast<float>(config.screenWidth), 
+						static_cast<float>(config.screenHeight),
+						gameTime,
+						config.bestTime
 					);
 					gameState = GameState::VICTORY;
 					window.setMouseCursorVisible(true); // Показываем курсор
@@ -323,15 +493,18 @@ int main()
 			}
 			
 			// Рендеринг 3D мира через raycasting
-			if (raycaster != nullptr && player != nullptr && gameMap != nullptr)
+			if (raycaster != nullptr && player != nullptr && gameMap != nullptr && lightSystem != nullptr && postProcessing != nullptr)
 			{
 				window.clear(sf::Color(10, 10, 10));
-				raycaster->render(window, *player, *gameMap);
+				raycaster->render(window, *player, *gameMap, *lightSystem);
+				
+				// Применяем пост-обработку (vignette, эффекты)
+				postProcessing->applyEffects(window, 0.0f, lightSystem->getFlashlightBattery());
 				
 				// HUD рисуется поверх игры
 				if (hud != nullptr)
 				{
-					hud->draw(window, *player, gameTime);
+					hud->draw(window, *player, gameTime, *lightSystem);
 				}
 				
 				// Миникарта рисуется ПОВЕРХ всего (если включена)
@@ -360,13 +533,20 @@ int main()
 					delete minimap;
 					delete victoryScreen;
 					delete hud;
+					delete lightSystem;
+					delete postProcessing;
 					gameMap = nullptr;
 					player = nullptr;
 					raycaster = nullptr;
 					minimap = nullptr;
 					victoryScreen = nullptr;
 					hud = nullptr;
+					lightSystem = nullptr;
+					postProcessing = nullptr;
 					gameTime = 0.0f;
+					
+					// Переключаем меню обратно в начальный режим
+					menu.setInGameMode(false);
 					
 					std::cout << "Returning to menu..." << std::endl;
 				}
@@ -377,6 +557,9 @@ int main()
 		window.display();
 	}
 	
+	// Сохраняем конфигурацию перед выходом
+	config.saveToFile("config.txt");
+	
 	// Очистка памяти
 	delete gameMap;
 	delete player;
@@ -384,6 +567,8 @@ int main()
 	delete minimap;
 	delete victoryScreen;
 	delete hud;
+	delete lightSystem;
+	delete postProcessing;
 
 	return 0;
 }

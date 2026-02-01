@@ -98,6 +98,9 @@
     <ClCompile Include="src\VictoryScreen.cpp" />
     <ClCompile Include="src\HUD.cpp" />
     <ClCompile Include="src\SettingsMenu.cpp" />
+    <ClCompile Include="src\LightSystem.cpp" />
+    <ClCompile Include="src\PostProcessing.cpp" />
+    <ClCompile Include="src\Config.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Menu.h" />
@@ -109,6 +112,9 @@
     <ClInclude Include="src\VictoryScreen.h" />
     <ClInclude Include="src\HUD.h" />
     <ClInclude Include="src\SettingsMenu.h" />
+    <ClInclude Include="src\LightSystem.h" />
+    <ClInclude Include="src\PostProcessing.h" />
+    <ClInclude Include="src\Config.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

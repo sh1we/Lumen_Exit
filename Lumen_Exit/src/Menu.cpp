@@ -3,6 +3,9 @@
 
 Menu::Menu(float width, float height)
     : m_selectedItemIndex(0)
+    , m_width(width)
+    , m_height(height)
+    , m_inGameMode(false)
 {
     // Используем моноширинный шрифт Courier New для ретро-вайба
     if (!m_font.loadFromFile("C:\\Windows\\Fonts\\cour.ttf"))
@@ -14,8 +17,36 @@ Menu::Menu(float width, float height)
         std::cout << "Courier New font loaded successfully!" << std::endl;
     }
 
-    // Создаем пункты меню
-    std::vector<std::string> items = { "START GAME", "SETTINGS", "EXIT" };
+    rebuildMenu();
+}
+
+void Menu::setInGameMode(bool inGame)
+{
+    if (m_inGameMode != inGame)
+    {
+        m_inGameMode = inGame;
+        rebuildMenu();
+    }
+}
+
+void Menu::rebuildMenu()
+{
+    m_menuItems.clear();
+    m_selectedItemIndex = 0;
+    
+    // Создаем пункты меню в зависимости от режима
+    std::vector<std::string> items;
+    
+    if (m_inGameMode)
+    {
+        // Меню во время игры
+        items = { "CONTINUE", "NEW GAME", "SETTINGS", "EXIT" };
+    }
+    else
+    {
+        // Меню до начала игры
+        items = { "START GAME", "SETTINGS", "EXIT" };
+    }
     
     for (size_t i = 0; i < items.size(); ++i)
     {
@@ -28,7 +59,7 @@ Menu::Menu(float width, float height)
         // Центрируем текст
         sf::FloatRect textRect = text.getLocalBounds();
         text.setOrigin(textRect.left + textRect.width / 2.0f, textRect.top + textRect.height / 2.0f);
-        text.setPosition(sf::Vector2f(width / 2.0f, height / 2.0f + i * 80.0f));
+        text.setPosition(sf::Vector2f(m_width / 2.0f, m_height / 2.0f + static_cast<float>(i) * 80.0f));
         
         m_menuItems.push_back(text);
     }
