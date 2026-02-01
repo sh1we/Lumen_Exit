@@ -10,11 +10,16 @@ Player::Player(float x, float y, float angle)
     , m_reachedExit(false)
     , m_stamina(100.0f)
     , m_maxStamina(100.0f)
-    , m_staminaDrainRate(20.0f)      // Тратим 20 стамины в секунду при беге
-    , m_staminaRegenRate(8.0f)       // Восстанавливаем 8 стамины в секунду (медленнее)
-    , m_staminaRegenDelay(1.5f)      // Задержка 1.5 сек перед восстановлением
+    , m_staminaDrainRate(20.0f)
+    , m_staminaRegenRate(8.0f)
+    , m_staminaRegenDelay(1.5f)
     , m_staminaRegenTimer(0.0f)
     , m_staminaExhausted(false)
+    , m_exhaustionThreshold(0.5f)      // Начальный порог 50%
+    , m_exhaustionIncrement(0.1f)      // Увеличиваем на 10% каждый раз
+    , m_exhaustionResetTimer(0.0f)
+    , m_exhaustionResetDelay(30.0f)    // Сброс через 30 секунд
+    , m_hadExhaustion(false)           // Изначально не было истощений
 {
     // Инициализируем fog of war (все клетки не посещены)
     m_visitedTiles.clear();
@@ -22,11 +27,25 @@ Player::Player(float x, float y, float angle)
 
 void Player::handleInput(float deltaTime)
 {
+    // Обновляем таймер сброса порога истощения (только если не бежим и не истощены)
+    if (!m_sprint && !m_staminaExhausted && m_exhaustionThreshold > 0.5f)
+    {
+        m_exhaustionResetTimer += deltaTime;
+        
+        // Если прошло 30 секунд без истощения, сбрасываем порог до 50%
+        if (m_exhaustionResetTimer >= m_exhaustionResetDelay)
+        {
+            m_exhaustionThreshold = 0.5f;
+            m_exhaustionResetTimer = 0.0f;
+            m_hadExhaustion = false; // Сбрасываем флаг истощения
+        }
+    }
+    
     // Проверка Shift для ускорения
     // Можно бежать только если:
     // 1. Стамина > 0
-    // 2. Не в состоянии истощения (или стамина восстановилась до 50%)
-    bool canSprint = m_stamina > 0.0f && (!m_staminaExhausted || m_stamina >= m_maxStamina * 0.5f);
+    // 2. Не в состоянии истощения (или стамина восстановилась до порога)
+    bool canSprint = m_stamina > 0.0f && (!m_staminaExhausted || m_stamina >= m_maxStamina * m_exhaustionThreshold);
     
     m_sprint = sf::Keyboard::isKeyPressed(sf::Keyboard::LShift) && canSprint;
     
@@ -43,7 +62,21 @@ void Player::handleInput(float deltaTime)
         {
             m_stamina = 0.0f;
             m_sprint = false;
-            m_staminaExhausted = true; // Входим в состояние истощения
+            
+            // Увеличиваем порог только если уже было истощение раньше
+            // И прошло меньше 30 секунд с момента последнего восстановления
+            if (m_hadExhaustion && m_exhaustionResetTimer < m_exhaustionResetDelay)
+            {
+                m_exhaustionThreshold += m_exhaustionIncrement;
+                if (m_exhaustionThreshold > 1.0f)
+                {
+                    m_exhaustionThreshold = 1.0f; // Максимум 100%
+                }
+            }
+            
+            m_staminaExhausted = true;
+            m_hadExhaustion = true; // Отмечаем что было истощение
+            m_exhaustionResetTimer = 0.0f; // Сбрасываем таймер 30 секунд
         }
     }
     else
@@ -60,10 +93,11 @@ void Player::handleInput(float deltaTime)
                 m_stamina = m_maxStamina;
             }
             
-            // Выходим из состояния истощения когда стамина >= 50%
-            if (m_staminaExhausted && m_stamina >= m_maxStamina * 0.5f)
+            // Выходим из состояния истощения когда стамина >= порога
+            if (m_staminaExhausted && m_stamina >= m_maxStamina * m_exhaustionThreshold)
             {
                 m_staminaExhausted = false;
+                // НЕ сбрасываем m_exhaustionResetTimer - он продолжает считать 30 секунд
             }
         }
     }
@@ -104,23 +138,41 @@ void Player::update(float deltaTime, const Map& map)
     handleInput(deltaTime);
     
     // Проверка коллизий со стенами с маленьким радиусом игрока
-    const float playerRadius = 0.15f; // Уменьшенный радиус для узких коридоров
+    const float playerRadius = 0.2f; // Увеличил радиус для лучшей коллизии
     
-    // Проверяем 4 угла вокруг игрока
-    bool collision = false;
+    // Проверяем коллизию с новой позицией
+    bool collisionX = false;
+    bool collisionY = false;
     
-    if (map.isWall(static_cast<int>(m_x + playerRadius), static_cast<int>(m_y + playerRadius)) ||
-        map.isWall(static_cast<int>(m_x - playerRadius), static_cast<int>(m_y + playerRadius)) ||
-        map.isWall(static_cast<int>(m_x + playerRadius), static_cast<int>(m_y - playerRadius)) ||
-        map.isWall(static_cast<int>(m_x - playerRadius), static_cast<int>(m_y - playerRadius)))
+    // Проверяем коллизию по X
+    if (map.isWall(static_cast<int>(m_x + playerRadius), static_cast<int>(oldY)) ||
+        map.isWall(static_cast<int>(m_x - playerRadius), static_cast<int>(oldY)))
     {
-        collision = true;
+        collisionX = true;
     }
     
-    // Если столкновение, возвращаем старую позицию
-    if (collision)
+    // Проверяем коллизию по Y
+    if (map.isWall(static_cast<int>(oldX), static_cast<int>(m_y + playerRadius)) ||
+        map.isWall(static_cast<int>(oldX), static_cast<int>(m_y - playerRadius)))
     {
+        collisionY = true;
+    }
+    
+    // Скольжение вдоль стен
+    if (collisionX && collisionY)
+    {
+        // Столкновение с углом - возвращаем обе координаты
         m_x = oldX;
+        m_y = oldY;
+    }
+    else if (collisionX)
+    {
+        // Столкновение по X - возвращаем только X, позволяем двигаться по Y
+        m_x = oldX;
+    }
+    else if (collisionY)
+    {
+        // Столкновение по Y - возвращаем только Y, позволяем двигаться по X
         m_y = oldY;
     }
     

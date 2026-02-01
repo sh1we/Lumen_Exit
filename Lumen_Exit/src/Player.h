@@ -26,6 +26,7 @@ public:
     float getMaxStamina() const { return m_maxStamina; }
     float getStaminaPercent() const { return (m_stamina / m_maxStamina) * 100.0f; }
     bool isStaminaExhausted() const { return m_staminaExhausted; }
+    float getExhaustionThreshold() const { return m_exhaustionThreshold; }
     
 private:
     float m_x;          // Позиция X
@@ -44,7 +45,12 @@ private:
     float m_maxStamina;
     float m_staminaDrainRate;
     float m_staminaRegenRate;
-    float m_staminaRegenDelay;   // Задержка перед восстановлением
-    float m_staminaRegenTimer;   // Таймер для задержки
-    bool m_staminaExhausted;     // Флаг истощения (нужно восстановить до 50%)
+    float m_staminaRegenDelay;      // Задержка перед восстановлением
+    float m_staminaRegenTimer;      // Таймер для задержки
+    bool m_staminaExhausted;        // Флаг истощения
+    float m_exhaustionThreshold;    // Порог восстановления (50%, 60%, 70%...)
+    float m_exhaustionIncrement;    // На сколько увеличивается порог
+    float m_exhaustionResetTimer;   // Таймер для сброса порога
+    float m_exhaustionResetDelay;   // Время до сброса порога (30 сек)
+    bool m_hadExhaustion;           // Было ли хотя бы одно истощение
 };

@@ -90,13 +90,25 @@ void HUD::draw(sf::RenderWindow& window, const Player& player, float gameTime)
     
     window.draw(staminaBar);
     
-    // Маркер 50% (для визуализации порога выхода из истощения)
+    // Маркер порога восстановления (для визуализации)
     if (player.isStaminaExhausted())
     {
-        sf::RectangleShape marker(sf::Vector2f(2.0f, barHeight));
-        marker.setPosition(20.0f + barWidth * 0.5f, static_cast<float>(m_screenHeight) - 50.0f);
+        float threshold = player.getExhaustionThreshold();
+        sf::RectangleShape marker(sf::Vector2f(2.0f, barHeight + 4.0f));
+        marker.setPosition(20.0f + barWidth * threshold - 1.0f, static_cast<float>(m_screenHeight) - 52.0f);
         marker.setFillColor(sf::Color(255, 255, 255));
         window.draw(marker);
+        
+        // Текст порога
+        std::ostringstream thresholdStr;
+        thresholdStr << static_cast<int>(threshold * 100) << "%";
+        sf::Text thresholdText;
+        thresholdText.setFont(m_font);
+        thresholdText.setString(thresholdStr.str());
+        thresholdText.setCharacterSize(12);
+        thresholdText.setFillColor(sf::Color(255, 255, 255));
+        thresholdText.setPosition(20.0f + barWidth * threshold + 5.0f, static_cast<float>(m_screenHeight) - 50.0f);
+        window.draw(thresholdText);
     }
     
     // Подсказка Tab
