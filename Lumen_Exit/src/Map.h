@@ -6,6 +6,7 @@ struct Room
 {
     int x, y;
     int width, height;
+    bool isExit = false; // Является ли эта комната выходом
     int centerX() const { return x + width / 2; }
     int centerY() const { return y + height / 2; }
 };
@@ -20,6 +21,7 @@ public:
     int getTile(int x, int y) const;
     bool isWall(int x, int y) const;
     bool isInRoom(int x, int y) const;
+    bool isInExitRoom(int x, int y) const;
     
     void getSpawnPosition(float& outX, float& outY) const;
     const std::vector<Room>& getRooms() const { return m_rooms; }

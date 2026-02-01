@@ -19,6 +19,8 @@ public:
     float getDirY() const { return std::sin(m_angle); }
     
     bool hasVisited(int x, int y) const { return m_visitedTiles.count(y * 1000 + x) > 0; }
+    bool hasReachedExit() const { return m_reachedExit; }
+    void setReachedExit(bool reached) { m_reachedExit = reached; }
     
 private:
     float m_x;          // Позиция X
@@ -30,4 +32,5 @@ private:
     bool m_sprint;      // Ускорение
     
     std::set<int> m_visitedTiles; // Fog of war - посещенные клетки
+    bool m_reachedExit; // Достиг ли игрок выхода
 };

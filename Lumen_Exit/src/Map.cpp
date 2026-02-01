@@ -49,6 +49,20 @@ bool Map::isInRoom(int x, int y) const
     return false;
 }
 
+bool Map::isInExitRoom(int x, int y) const
+{
+    for (const auto& room : m_rooms)
+    {
+        if (room.isExit && 
+            x >= room.x && x < room.x + room.width &&
+            y >= room.y && y < room.y + room.height)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
 void Map::getSpawnPosition(float& outX, float& outY) const
 {
     outX = static_cast<float>(m_spawnX) + 0.5f;
@@ -75,6 +89,31 @@ void Map::generateMaze(unsigned int seed)
     {
         m_spawnX = m_rooms[0].centerX();
         m_spawnY = m_rooms[0].centerY();
+        
+        // Выход находится в последней комнате (самой дальней от спавна)
+        if (m_rooms.size() > 1)
+        {
+            // Находим самую дальнюю комнату от спавна
+            int maxDist = 0;
+            int exitRoomIndex = m_rooms.size() - 1;
+            
+            for (size_t i = 1; i < m_rooms.size(); ++i)
+            {
+                int dx = m_rooms[i].centerX() - m_spawnX;
+                int dy = m_rooms[i].centerY() - m_spawnY;
+                int dist = dx * dx + dy * dy;
+                
+                if (dist > maxDist)
+                {
+                    maxDist = dist;
+                    exitRoomIndex = i;
+                }
+            }
+            
+            m_rooms[exitRoomIndex].isExit = true;
+            std::cout << "Exit room at (" << m_rooms[exitRoomIndex].centerX() 
+                      << ", " << m_rooms[exitRoomIndex].centerY() << ")" << std::endl;
+        }
     }
     else
     {

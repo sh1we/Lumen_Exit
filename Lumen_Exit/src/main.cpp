@@ -6,12 +6,14 @@
 #include "Raycaster.h"
 #include "LoadingScreen.h"
 #include "Minimap.h"
+#include "VictoryScreen.h"
 
 enum class GameState
 {
 	LOADING,
 	MENU,
 	PLAYING,
+	VICTORY,
 	PAUSED
 };
 
@@ -41,11 +43,13 @@ int main()
 	Player* player = nullptr;
 	Raycaster* raycaster = nullptr;
 	Minimap* minimap = nullptr;
+	VictoryScreen* victoryScreen = nullptr;
 	bool showMinimap = false;
 	bool tabPressed = false; // Для debounce клавиши Tab
 	
-	// Таймер для deltaTime
+	// Таймер для deltaTime и игрового времени
 	sf::Clock clock;
+	float gameTime = 0.0f; // Время прохождения уровня
 
 	// Главный игровой цикл
 	while (window.isOpen())
@@ -100,6 +104,7 @@ int main()
 							}
 							
 							gameState = GameState::PLAYING;
+							gameTime = 0.0f; // Сбрасываем таймер
 							std::cout << "Game started!" << std::endl;
 						}
 						else if (selected == 1) // EXIT
@@ -164,6 +169,24 @@ int main()
 			if (window.hasFocus() && player != nullptr && gameMap != nullptr)
 			{
 				player->update(deltaTime, *gameMap);
+				gameTime += deltaTime; // Считаем время прохождения
+				
+				// Проверяем, достиг ли игрок выхода
+				if (player->hasReachedExit())
+				{
+					std::cout << "\n==================================" << std::endl;
+					std::cout << "    EXIT FOUND! YOU ESCAPED!" << std::endl;
+					std::cout << "    Time: " << static_cast<int>(gameTime) << " seconds" << std::endl;
+					std::cout << "==================================" << std::endl;
+					
+					// Создаем экран победы
+					victoryScreen = new VictoryScreen(
+						static_cast<float>(SCREEN_WIDTH), 
+						static_cast<float>(SCREEN_HEIGHT),
+						gameTime
+					);
+					gameState = GameState::VICTORY;
+				}
 			}
 			
 			// Рендеринг 3D мира через raycasting
@@ -179,6 +202,35 @@ int main()
 				}
 			}
 		}
+		else if (gameState == GameState::VICTORY)
+		{
+			if (victoryScreen != nullptr)
+			{
+				victoryScreen->update(deltaTime);
+				victoryScreen->draw(window);
+				
+				// Переход в меню после завершения экрана победы
+				if (victoryScreen->isFinished())
+				{
+					gameState = GameState::MENU;
+					
+					// Сбрасываем игру для новой попытки
+					delete gameMap;
+					delete player;
+					delete raycaster;
+					delete minimap;
+					delete victoryScreen;
+					gameMap = nullptr;
+					player = nullptr;
+					raycaster = nullptr;
+					minimap = nullptr;
+					victoryScreen = nullptr;
+					gameTime = 0.0f;
+					
+					std::cout << "Returning to menu..." << std::endl;
+				}
+			}
+		}
 
 		// Отображение
 		window.display();
@@ -189,6 +241,7 @@ int main()
 	delete player;
 	delete raycaster;
 	delete minimap;
+	delete victoryScreen;
 
 	return 0;
 }

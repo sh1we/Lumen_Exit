@@ -7,6 +7,7 @@ Player::Player(float x, float y, float angle)
     , m_moveSpeed(3.0f)
     , m_rotSpeed(2.5f)
     , m_sprint(false)
+    , m_reachedExit(false)
 {
     // Инициализируем fog of war (все клетки не посещены)
     m_visitedTiles.clear();
@@ -94,6 +95,13 @@ void Player::update(float deltaTime, const Map& map)
                     m_visitedTiles.insert(ry * 1000 + rx);
                 }
             }
+            
+            // Проверяем, достиг ли игрок выхода
+            if (room.isExit && !m_reachedExit)
+            {
+                m_reachedExit = true;
+            }
+            
             break;
         }
     }

@@ -40,7 +40,14 @@ void Minimap::draw(sf::RenderWindow& window, const Player& player, const Map& ma
             }
             else if (map.isInRoom(x, y))
             {
-                tileColor = sf::Color(80, 255, 80); // Яркий зеленый для комнат
+                if (map.isInExitRoom(x, y))
+                {
+                    tileColor = sf::Color(255, 215, 0); // Золотой цвет для выхода
+                }
+                else
+                {
+                    tileColor = sf::Color(80, 255, 80); // Яркий зеленый для обычных комнат
+                }
             }
             else
             {
