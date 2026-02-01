@@ -7,6 +7,7 @@
 #include "LoadingScreen.h"
 #include "Minimap.h"
 #include "VictoryScreen.h"
+#include "HUD.h"
 
 enum class GameState
 {
@@ -44,6 +45,7 @@ int main()
 	Raycaster* raycaster = nullptr;
 	Minimap* minimap = nullptr;
 	VictoryScreen* victoryScreen = nullptr;
+	HUD* hud = nullptr;
 	bool showMinimap = false;
 	bool tabPressed = false; // Для debounce клавиши Tab
 	
@@ -93,7 +95,7 @@ int main()
 							// Создаем игровые объекты только при старте игры
 							if (gameMap == nullptr)
 							{
-								gameMap = new Map(31, 31);
+								gameMap = new Map(51, 51); // Увеличили карту до 51x51
 								
 								float spawnX, spawnY;
 								gameMap->getSpawnPosition(spawnX, spawnY);
@@ -101,6 +103,7 @@ int main()
 								
 								raycaster = new Raycaster(SCREEN_WIDTH, SCREEN_HEIGHT);
 								minimap = new Minimap(SCREEN_WIDTH, SCREEN_HEIGHT);
+								hud = new HUD(SCREEN_WIDTH, SCREEN_HEIGHT);
 							}
 							
 							gameState = GameState::PLAYING;
@@ -195,7 +198,13 @@ int main()
 				window.clear(sf::Color(10, 10, 10));
 				raycaster->render(window, *player, *gameMap);
 				
-				// Миникарта рисуется ПОВЕРХ 3D мира (если включена)
+				// HUD рисуется поверх игры
+				if (hud != nullptr)
+				{
+					hud->draw(window, *player, gameTime);
+				}
+				
+				// Миникарта рисуется ПОВЕРХ всего (если включена)
 				if (showMinimap && minimap != nullptr)
 				{
 					minimap->draw(window, *player, *gameMap);
@@ -220,11 +229,13 @@ int main()
 					delete raycaster;
 					delete minimap;
 					delete victoryScreen;
+					delete hud;
 					gameMap = nullptr;
 					player = nullptr;
 					raycaster = nullptr;
 					minimap = nullptr;
 					victoryScreen = nullptr;
+					hud = nullptr;
 					gameTime = 0.0f;
 					
 					std::cout << "Returning to menu..." << std::endl;
@@ -242,6 +253,7 @@ int main()
 	delete raycaster;
 	delete minimap;
 	delete victoryScreen;
+	delete hud;
 
 	return 0;
 }

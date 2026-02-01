@@ -22,6 +22,11 @@ public:
     bool hasReachedExit() const { return m_reachedExit; }
     void setReachedExit(bool reached) { m_reachedExit = reached; }
     
+    float getStamina() const { return m_stamina; }
+    float getMaxStamina() const { return m_maxStamina; }
+    float getStaminaPercent() const { return (m_stamina / m_maxStamina) * 100.0f; }
+    bool isStaminaExhausted() const { return m_staminaExhausted; }
+    
 private:
     float m_x;          // Позиция X
     float m_y;          // Позиция Y
@@ -33,4 +38,13 @@ private:
     
     std::set<int> m_visitedTiles; // Fog of war - посещенные клетки
     bool m_reachedExit; // Достиг ли игрок выхода
+    
+    // Система стамины
+    float m_stamina;
+    float m_maxStamina;
+    float m_staminaDrainRate;
+    float m_staminaRegenRate;
+    float m_staminaRegenDelay;   // Задержка перед восстановлением
+    float m_staminaRegenTimer;   // Таймер для задержки
+    bool m_staminaExhausted;     // Флаг истощения (нужно восстановить до 50%)
 };
