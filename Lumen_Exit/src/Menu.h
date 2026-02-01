@@ -11,6 +11,8 @@ public:
     void draw(sf::RenderWindow& window);
     void moveUp();
     void moveDown();
+    void handleMouseMove(const sf::Vector2i& mousePos);
+    bool handleMouseClick(const sf::Vector2i& mousePos);
     int getSelectedItem() const { return m_selectedItemIndex; }
 
 private:

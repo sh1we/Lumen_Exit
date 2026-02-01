@@ -11,6 +11,7 @@ public:
     
     void update(float deltaTime, const Map& map);
     void handleInput(float deltaTime);
+    void handleMouseMovement(float deltaX, float sensitivity);
     
     float getX() const { return m_x; }
     float getY() const { return m_y; }

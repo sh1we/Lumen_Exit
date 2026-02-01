@@ -8,11 +8,13 @@
 #include "Minimap.h"
 #include "VictoryScreen.h"
 #include "HUD.h"
+#include "SettingsMenu.h"
 
 enum class GameState
 {
 	LOADING,
 	MENU,
+	SETTINGS,
 	PLAYING,
 	VICTORY,
 	PAUSED
@@ -32,12 +34,22 @@ int main()
 
 	// Состояние игры
 	GameState gameState = GameState::LOADING;
+	GameState previousState = GameState::LOADING; // Для возврата из настроек
 
 	// Создание загрузочного экрана
 	LoadingScreen loadingScreen(static_cast<float>(SCREEN_WIDTH), static_cast<float>(SCREEN_HEIGHT));
 	
 	// Создание меню
 	Menu menu(static_cast<float>(SCREEN_WIDTH), static_cast<float>(SCREEN_HEIGHT));
+	
+	// Управление мышкой (объявляем ДО создания settingsMenu)
+	bool mouseControlEnabled = true;
+	float mouseSensitivity = 0.001f; // Уменьшил чувствительность (было 0.002)
+	sf::Vector2i lastMousePos;
+	bool firstMouse = true;
+	
+	// Создание меню настроек (после объявления mouseSensitivity)
+	SettingsMenu settingsMenu(static_cast<float>(SCREEN_WIDTH), static_cast<float>(SCREEN_HEIGHT), mouseSensitivity);
 	
 	// Игровые объекты (создаются только при старте игры)
 	Map* gameMap = nullptr;
@@ -48,6 +60,7 @@ int main()
 	HUD* hud = nullptr;
 	bool showMinimap = false;
 	bool tabPressed = false; // Для debounce клавиши Tab
+	bool escPressed = false; // Для debounce клавиши ESC в настройках
 	
 	// Таймер для deltaTime и игрового времени
 	sf::Clock clock;
@@ -76,6 +89,16 @@ int main()
 				if (gameState == GameState::LOADING)
 				{
 					// Загрузочный экран обрабатывает нажатия сам
+				}
+				else if (gameState == GameState::SETTINGS)
+				{
+					settingsMenu.handleInput(event.key.code);
+					
+					if (event.key.code == sf::Keyboard::Escape && !escPressed)
+					{
+						gameState = previousState;
+						escPressed = true;
+					}
 				}
 				else if (gameState == GameState::MENU)
 				{
@@ -108,9 +131,16 @@ int main()
 							
 							gameState = GameState::PLAYING;
 							gameTime = 0.0f; // Сбрасываем таймер
+							firstMouse = true; // Сбрасываем флаг мыши
+							window.setMouseCursorVisible(false); // Скрываем курсор
 							std::cout << "Game started!" << std::endl;
 						}
-						else if (selected == 1) // EXIT
+						else if (selected == 1) // SETTINGS
+						{
+							previousState = GameState::MENU;
+							gameState = GameState::SETTINGS;
+						}
+						else if (selected == 2) // EXIT
 						{
 							window.close();
 						}
@@ -125,6 +155,7 @@ int main()
 					if (event.key.code == sf::Keyboard::Escape)
 					{
 						gameState = GameState::MENU;
+						window.setMouseCursorVisible(true); // Показываем курсор
 						std::cout << "Back to menu" << std::endl;
 					}
 					else if (event.key.code == sf::Keyboard::Tab && !tabPressed)
@@ -136,12 +167,82 @@ int main()
 				}
 			}
 			
-			// Отслеживаем отпускание Tab
+			// Обработка кликов мыши в меню
+			if (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left)
+			{
+				if (gameState == GameState::MENU)
+				{
+					sf::Vector2i mousePos = sf::Mouse::getPosition(window);
+					if (menu.handleMouseClick(mousePos))
+					{
+						// Обрабатываем выбор как Enter
+						int selected = menu.getSelectedItem();
+						if (selected == 0) // START GAME
+						{
+							// Создаем игровые объекты только при старте игры
+							if (gameMap == nullptr)
+							{
+								gameMap = new Map(51, 51);
+								
+								float spawnX, spawnY;
+								gameMap->getSpawnPosition(spawnX, spawnY);
+								player = new Player(spawnX, spawnY, 0.0f);
+								
+								raycaster = new Raycaster(SCREEN_WIDTH, SCREEN_HEIGHT);
+								minimap = new Minimap(SCREEN_WIDTH, SCREEN_HEIGHT);
+								hud = new HUD(SCREEN_WIDTH, SCREEN_HEIGHT);
+							}
+							
+							gameState = GameState::PLAYING;
+							gameTime = 0.0f;
+							firstMouse = true;
+							window.setMouseCursorVisible(false);
+							std::cout << "Game started!" << std::endl;
+						}
+						else if (selected == 1) // SETTINGS
+						{
+							previousState = GameState::MENU;
+							gameState = GameState::SETTINGS;
+						}
+						else if (selected == 2) // EXIT
+						{
+							window.close();
+						}
+					}
+				}
+				else if (gameState == GameState::SETTINGS)
+				{
+					sf::Vector2i mousePos = sf::Mouse::getPosition(window);
+					settingsMenu.handleMouseClick(mousePos);
+				}
+			}
+			
+			// Обработка движения мыши в меню
+			if (event.type == sf::Event::MouseMoved)
+			{
+				if (gameState == GameState::MENU)
+				{
+					sf::Vector2i mousePos = sf::Mouse::getPosition(window);
+					menu.handleMouseMove(mousePos);
+				}
+				else if (gameState == GameState::SETTINGS)
+				{
+					sf::Vector2i mousePos = sf::Mouse::getPosition(window);
+					bool isPressed = sf::Mouse::isButtonPressed(sf::Mouse::Left);
+					settingsMenu.handleMouseMove(mousePos, isPressed);
+				}
+			}
+			
+			// Отслеживаем отпускание Tab и ESC
 			if (event.type == sf::Event::KeyReleased)
 			{
 				if (event.key.code == sf::Keyboard::Tab)
 				{
 					tabPressed = false;
+				}
+				else if (event.key.code == sf::Keyboard::Escape)
+				{
+					escPressed = false;
 				}
 			}
 		}
@@ -166,11 +267,39 @@ int main()
 		{
 			menu.draw(window);
 		}
+		else if (gameState == GameState::SETTINGS)
+		{
+			settingsMenu.draw(window);
+		}
 		else if (gameState == GameState::PLAYING)
 		{
 			// Обновление игрока только если окно в фокусе
 			if (window.hasFocus() && player != nullptr && gameMap != nullptr)
 			{
+				// Управление мышкой
+				if (mouseControlEnabled)
+				{
+					sf::Vector2i mousePos = sf::Mouse::getPosition(window);
+					
+					if (firstMouse)
+					{
+						lastMousePos = mousePos;
+						firstMouse = false;
+					}
+					
+					float deltaX = static_cast<float>(mousePos.x - lastMousePos.x);
+					
+					if (deltaX != 0.0f)
+					{
+						player->handleMouseMovement(deltaX, mouseSensitivity);
+					}
+					
+					// Возвращаем курсор в центр окна для непрерывного вращения
+					sf::Vector2i center(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2);
+					sf::Mouse::setPosition(center, window);
+					lastMousePos = center;
+				}
+				
 				player->update(deltaTime, *gameMap);
 				gameTime += deltaTime; // Считаем время прохождения
 				
@@ -189,6 +318,7 @@ int main()
 						gameTime
 					);
 					gameState = GameState::VICTORY;
+					window.setMouseCursorVisible(true); // Показываем курсор
 				}
 			}
 			

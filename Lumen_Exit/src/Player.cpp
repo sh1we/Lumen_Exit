@@ -129,6 +129,11 @@ void Player::handleInput(float deltaTime)
     }
 }
 
+void Player::handleMouseMovement(float deltaX, float sensitivity)
+{
+    m_angle += deltaX * sensitivity;
+}
+
 void Player::update(float deltaTime, const Map& map)
 {
     // Сохраняем старую позицию
@@ -137,42 +142,24 @@ void Player::update(float deltaTime, const Map& map)
     
     handleInput(deltaTime);
     
-    // Проверка коллизий со стенами с маленьким радиусом игрока
-    const float playerRadius = 0.2f; // Увеличил радиус для лучшей коллизии
+    // Проверка коллизий - используем очень маленький радиус
+    const float playerRadius = 0.1f;
     
-    // Проверяем коллизию с новой позицией
-    bool collisionX = false;
-    bool collisionY = false;
+    // Проверяем коллизию отдельно по X и Y для скольжения вдоль стен
+    bool collisionX = map.isWall(static_cast<int>(m_x + playerRadius), static_cast<int>(oldY)) ||
+                      map.isWall(static_cast<int>(m_x - playerRadius), static_cast<int>(oldY));
     
-    // Проверяем коллизию по X
-    if (map.isWall(static_cast<int>(m_x + playerRadius), static_cast<int>(oldY)) ||
-        map.isWall(static_cast<int>(m_x - playerRadius), static_cast<int>(oldY)))
-    {
-        collisionX = true;
-    }
-    
-    // Проверяем коллизию по Y
-    if (map.isWall(static_cast<int>(oldX), static_cast<int>(m_y + playerRadius)) ||
-        map.isWall(static_cast<int>(oldX), static_cast<int>(m_y - playerRadius)))
-    {
-        collisionY = true;
-    }
+    bool collisionY = map.isWall(static_cast<int>(oldX), static_cast<int>(m_y + playerRadius)) ||
+                      map.isWall(static_cast<int>(oldX), static_cast<int>(m_y - playerRadius));
     
     // Скольжение вдоль стен
-    if (collisionX && collisionY)
+    if (collisionX)
     {
-        // Столкновение с углом - возвращаем обе координаты
-        m_x = oldX;
-        m_y = oldY;
-    }
-    else if (collisionX)
-    {
-        // Столкновение по X - возвращаем только X, позволяем двигаться по Y
         m_x = oldX;
     }
-    else if (collisionY)
+    
+    if (collisionY)
     {
-        // Столкновение по Y - возвращаем только Y, позволяем двигаться по X
         m_y = oldY;
     }
     

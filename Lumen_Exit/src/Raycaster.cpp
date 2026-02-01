@@ -103,6 +103,7 @@ Raycaster::RayHit Raycaster::castRay(float rayAngle, const Player& player, const
 void Raycaster::render(sf::RenderWindow& window, const Player& player, const Map& map)
 {
     // Создаем буфер для отрисовки (оптимизация)
+    sf::VertexArray floorCeiling(sf::Quads);
     sf::VertexArray wallSlices(sf::Quads);
     
     // Отрисовка каждого вертикального столбца экрана
@@ -133,7 +134,7 @@ void Raycaster::render(sf::RenderWindow& window, const Player& player, const Map
         int colorValue = static_cast<int>(brightness * (hit.hitVertical ? 255 : 180));
         sf::Color wallColor(colorValue, colorValue, colorValue);
         
-        // Добавляем вертикальную линию стены в буфер (используем Quads для оптимизации)
+        // Добавляем вертикальную линию стены в буфер
         float xPos = static_cast<float>(x);
         float yStart = static_cast<float>(drawStart);
         float yEnd = static_cast<float>(drawEnd);
@@ -142,8 +143,31 @@ void Raycaster::render(sf::RenderWindow& window, const Player& player, const Map
         wallSlices.append(sf::Vertex(sf::Vector2f(xPos + 1.0f, yStart), wallColor));
         wallSlices.append(sf::Vertex(sf::Vector2f(xPos + 1.0f, yEnd), wallColor));
         wallSlices.append(sf::Vertex(sf::Vector2f(xPos, yEnd), wallColor));
+        
+        // Отрисовка пола и потолка
+        // Потолок (темно-серый)
+        if (drawStart > 0)
+        {
+            sf::Color ceilingColor(30, 30, 35); // Темный потолок
+            floorCeiling.append(sf::Vertex(sf::Vector2f(xPos, 0.0f), ceilingColor));
+            floorCeiling.append(sf::Vertex(sf::Vector2f(xPos + 1.0f, 0.0f), ceilingColor));
+            floorCeiling.append(sf::Vertex(sf::Vector2f(xPos + 1.0f, yStart), ceilingColor));
+            floorCeiling.append(sf::Vertex(sf::Vector2f(xPos, yStart), ceilingColor));
+        }
+        
+        // Пол (чуть светлее потолка)
+        if (drawEnd < m_screenHeight)
+        {
+            sf::Color floorColor(40, 40, 45); // Темный пол
+            floorCeiling.append(sf::Vertex(sf::Vector2f(xPos, yEnd), floorColor));
+            floorCeiling.append(sf::Vertex(sf::Vector2f(xPos + 1.0f, yEnd), floorColor));
+            floorCeiling.append(sf::Vertex(sf::Vector2f(xPos + 1.0f, static_cast<float>(m_screenHeight)), floorColor));
+            floorCeiling.append(sf::Vertex(sf::Vector2f(xPos, static_cast<float>(m_screenHeight)), floorColor));
+        }
     }
     
-    // Рисуем все стены одним вызовом (огромная оптимизация!)
+    // Рисуем пол и потолок сначала
+    window.draw(floorCeiling);
+    // Потом стены поверх
     window.draw(wallSlices);
 }

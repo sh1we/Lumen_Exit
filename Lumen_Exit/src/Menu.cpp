@@ -15,7 +15,7 @@ Menu::Menu(float width, float height)
     }
 
     // Создаем пункты меню
-    std::vector<std::string> items = { "START GAME", "EXIT" };
+    std::vector<std::string> items = { "START GAME", "SETTINGS", "EXIT" };
     
     for (size_t i = 0; i < items.size(); ++i)
     {
@@ -89,4 +89,42 @@ void Menu::moveDown()
         m_selectedItemIndex++;
         m_menuItems[m_selectedItemIndex].setFillColor(sf::Color(200, 200, 200));
     }
+}
+
+void Menu::handleMouseMove(const sf::Vector2i& mousePos)
+{
+    // Проверяем, наведена ли мышь на какой-то пункт меню
+    for (size_t i = 0; i < m_menuItems.size(); ++i)
+    {
+        sf::FloatRect bounds = m_menuItems[i].getGlobalBounds();
+        
+        if (bounds.contains(static_cast<float>(mousePos.x), static_cast<float>(mousePos.y)))
+        {
+            // Если это не выбранный пункт, меняем выделение
+            if (static_cast<int>(i) != m_selectedItemIndex)
+            {
+                m_menuItems[m_selectedItemIndex].setFillColor(sf::Color(80, 80, 80));
+                m_selectedItemIndex = static_cast<int>(i);
+                m_menuItems[m_selectedItemIndex].setFillColor(sf::Color(200, 200, 200));
+            }
+            return;
+        }
+    }
+}
+
+bool Menu::handleMouseClick(const sf::Vector2i& mousePos)
+{
+    // Проверяем, кликнули ли на какой-то пункт меню
+    for (size_t i = 0; i < m_menuItems.size(); ++i)
+    {
+        sf::FloatRect bounds = m_menuItems[i].getGlobalBounds();
+        
+        if (bounds.contains(static_cast<float>(mousePos.x), static_cast<float>(mousePos.y)))
+        {
+            m_selectedItemIndex = static_cast<int>(i);
+            return true; // Клик был на пункте меню
+        }
+    }
+    
+    return false; // Клик был вне пунктов меню
 }
