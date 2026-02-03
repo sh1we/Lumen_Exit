@@ -1,6 +1,7 @@
 #include "Player.h"
 #include "Map.h"
 #include "../utils/MathUtils.h"
+#include "../utils/AudioManager.h"
 #include <SFML/Window/Keyboard.hpp>
 #include <cmath>
 
@@ -18,10 +19,11 @@ Player::Player(float x, float y, float angle)
     , m_staminaRegenTimer(0.0f)
     , m_staminaExhausted(false)
     , m_exhaustionThreshold(0.5f)
-    , m_exhaustionIncrement(0.1f)      // +10% each time you exhaust
+    , m_exhaustionIncrement(0.1f)
     , m_exhaustionResetTimer(0.0f)
-    , m_exhaustionResetDelay(30.0f)    // resets after 30s of not sprinting
+    , m_exhaustionResetDelay(30.0f)
     , m_hadExhaustion(false)
+    , m_breathingSoundTimer(0.0f)
 {
     m_visitedTiles.clear();
     updateDirection();
@@ -77,6 +79,9 @@ void Player::handleInput(float deltaTime)
             m_staminaExhausted = true;
             m_hadExhaustion = true;
             m_exhaustionResetTimer = 0.0f;
+            
+            // play breathing sound when stamina runs out
+            AudioManager::getInstance().playSound("breathing", 90.0f);
         }
     }
     else

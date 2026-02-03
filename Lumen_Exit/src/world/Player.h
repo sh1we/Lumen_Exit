@@ -63,4 +63,6 @@ private:
     float m_exhaustionResetTimer;   // Таймер для сброса порога
     float m_exhaustionResetDelay;   // Время до сброса порога (30 сек)
     bool m_hadExhaustion;           // Было ли хотя бы одно истощение
+    
+    float m_breathingSoundTimer;    // Таймер для звука дыхания
 };

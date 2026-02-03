@@ -7,6 +7,7 @@ AudioManager::AudioManager()
     // load embedded sounds
     loadSoundFromMemory("scroll", scroll_data, scroll_size);
     loadSoundFromMemory("click", interaction_data, interaction_size);
+    loadSoundFromMemory("breathing", breathing_data, breathing_size);
 }
 
 bool AudioManager::loadSoundFromMemory(const std::string& name, const unsigned char* data, size_t size)
