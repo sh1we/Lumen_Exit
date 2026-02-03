@@ -176,6 +176,30 @@ void SettingsMenu::draw(sf::RenderWindow& window)
         yPos += 50.0f;
     }
     
+    // lighting quality
+    {
+        std::string qualityStr;
+        switch (m_config.lightingQuality)
+        {
+            case LightingQuality::LOW: qualityStr = "LOW"; break;
+            case LightingQuality::MEDIUM: qualityStr = "MEDIUM"; break;
+            case LightingQuality::HIGH: qualityStr = "HIGH"; break;
+        }
+        
+        sf::Text lightingText;
+        lightingText.setFont(m_font);
+        lightingText.setString("Lighting Quality: " + qualityStr);
+        lightingText.setCharacterSize(24);
+        lightingText.setFillColor(m_selectedOption == 4 ? sf::Color(255, 255, 100) : sf::Color(200, 200, 200));
+        
+        sf::FloatRect lightingRect = lightingText.getLocalBounds();
+        lightingText.setOrigin(lightingRect.left + lightingRect.width / 2.0f, lightingRect.top + lightingRect.height / 2.0f);
+        lightingText.setPosition(sf::Vector2f(m_width / 2.0f, yPos));
+        window.draw(lightingText);
+        
+        yPos += 50.0f;
+    }
+    
     // seed
     {
         std::string seedDisplay = m_seedInput.empty() ? "Random" : m_seedInput;
@@ -189,7 +213,7 @@ void SettingsMenu::draw(sf::RenderWindow& window)
         seedText.setString("Seed: " + seedDisplay);
         seedText.setCharacterSize(24);
         
-        if (m_selectedOption == 4)
+        if (m_selectedOption == 5)
         {
             seedText.setFillColor(m_editingSeed ? sf::Color(100, 255, 100) : sf::Color(255, 255, 100));
         }
@@ -203,7 +227,7 @@ void SettingsMenu::draw(sf::RenderWindow& window)
         seedText.setPosition(sf::Vector2f(m_width / 2.0f, yPos));
         window.draw(seedText);
         
-        if (m_selectedOption == 4 && !m_editingSeed)
+        if (m_selectedOption == 5 && !m_editingSeed)
         {
             sf::Text seedHint;
             seedHint.setFont(m_font);
@@ -229,23 +253,8 @@ void SettingsMenu::draw(sf::RenderWindow& window)
     
     sf::FloatRect hintRect = hint.getLocalBounds();
     hint.setOrigin(hintRect.left + hintRect.width / 2.0f, hintRect.top + hintRect.height / 2.0f);
-    hint.setPosition(sf::Vector2f(m_width / 2.0f, m_height - 80.0f));
+    hint.setPosition(sf::Vector2f(m_width / 2.0f, m_height - 50.0f));
     window.draw(hint);
-    
-    // restart warning
-    if (m_needsRestart)
-    {
-        sf::Text warning;
-        warning.setFont(m_font);
-        warning.setString("Restart required for changes to take effect");
-        warning.setCharacterSize(20);
-        warning.setFillColor(sf::Color(255, 100, 100));
-        
-        sf::FloatRect warnRect = warning.getLocalBounds();
-        warning.setOrigin(warnRect.left + warnRect.width / 2.0f, warnRect.top + warnRect.height / 2.0f);
-        warning.setPosition(sf::Vector2f(m_width / 2.0f, m_height - 50.0f));
-        window.draw(warning);
-    }
 }
 
 void SettingsMenu::handleInput(sf::Keyboard::Key key)
@@ -282,11 +291,11 @@ void SettingsMenu::handleInput(sf::Keyboard::Key key)
     
     if (key == sf::Keyboard::Up)
     {
-        m_selectedOption = (m_selectedOption - 1 + 5) % 5;
+        m_selectedOption = (m_selectedOption - 1 + 6) % 6;
     }
     else if (key == sf::Keyboard::Down)
     {
-        m_selectedOption = (m_selectedOption + 1) % 5;
+        m_selectedOption = (m_selectedOption + 1) % 6;
     }
     else if (key == sf::Keyboard::Left)
     {
@@ -303,20 +312,24 @@ void SettingsMenu::handleInput(sf::Keyboard::Key key)
             m_config.screenWidth = m_resolutions[m_currentResolutionIndex].width;
             m_config.screenHeight = m_resolutions[m_currentResolutionIndex].height;
             m_config.saveToFile("config.txt");
-            m_needsRestart = true;
         }
         else if (m_selectedOption == 2)
         {
             m_currentFpsIndex = (m_currentFpsIndex - 1 + static_cast<int>(m_fpsOptions.size())) % static_cast<int>(m_fpsOptions.size());
             m_config.targetFPS = m_fpsOptions[m_currentFpsIndex];
             m_config.saveToFile("config.txt");
-            m_needsRestart = true;
         }
         else if (m_selectedOption == 3)
         {
             m_config.fullscreen = !m_config.fullscreen;
             m_config.saveToFile("config.txt");
-            m_needsRestart = true;
+        }
+        else if (m_selectedOption == 4)
+        {
+            int q = static_cast<int>(m_config.lightingQuality);
+            q = (q - 1 + 3) % 3;
+            m_config.lightingQuality = static_cast<LightingQuality>(q);
+            m_config.saveToFile("config.txt");
         }
     }
     else if (key == sf::Keyboard::Right)
@@ -334,23 +347,27 @@ void SettingsMenu::handleInput(sf::Keyboard::Key key)
             m_config.screenWidth = m_resolutions[m_currentResolutionIndex].width;
             m_config.screenHeight = m_resolutions[m_currentResolutionIndex].height;
             m_config.saveToFile("config.txt");
-            m_needsRestart = true;
         }
         else if (m_selectedOption == 2)
         {
             m_currentFpsIndex = (m_currentFpsIndex + 1) % static_cast<int>(m_fpsOptions.size());
             m_config.targetFPS = m_fpsOptions[m_currentFpsIndex];
             m_config.saveToFile("config.txt");
-            m_needsRestart = true;
         }
         else if (m_selectedOption == 3)
         {
             m_config.fullscreen = !m_config.fullscreen;
             m_config.saveToFile("config.txt");
-            m_needsRestart = true;
+        }
+        else if (m_selectedOption == 4)
+        {
+            int q = static_cast<int>(m_config.lightingQuality);
+            q = (q + 1) % 3;
+            m_config.lightingQuality = static_cast<LightingQuality>(q);
+            m_config.saveToFile("config.txt");
         }
     }
-    else if (key == sf::Keyboard::Enter && m_selectedOption == 4)
+    else if (key == sf::Keyboard::Enter && m_selectedOption == 5)
     {
         m_editingSeed = true;
     }

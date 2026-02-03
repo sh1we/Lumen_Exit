@@ -42,15 +42,22 @@ int main()
 	GameState gameState = GameState::LOADING;
 	GameState previousState = GameState::LOADING;
 
-	LoadingScreen loadingScreen(static_cast<float>(config.screenWidth), static_cast<float>(config.screenHeight));
-	Menu menu(static_cast<float>(config.screenWidth), static_cast<float>(config.screenHeight));
+	LoadingScreen* loadingScreen = new LoadingScreen(static_cast<float>(config.screenWidth), static_cast<float>(config.screenHeight));
+	Menu* menu = new Menu(static_cast<float>(config.screenWidth), static_cast<float>(config.screenHeight));
 	
 	// mouse stuff
 	bool mouseControlEnabled = true;
 	sf::Vector2i lastMousePos;
 	bool firstMouse = true;
 	
-	SettingsMenu settingsMenu(static_cast<float>(config.screenWidth), static_cast<float>(config.screenHeight), config);
+	SettingsMenu* settingsMenu = new SettingsMenu(static_cast<float>(config.screenWidth), static_cast<float>(config.screenHeight), config);
+	
+	// track settings for hot-reload
+	int lastScreenWidth = config.screenWidth;
+	int lastScreenHeight = config.screenHeight;
+	int lastTargetFPS = config.targetFPS;
+	bool lastFullscreen = config.fullscreen;
+	LightingQuality lastLightingQuality = config.lightingQuality;
 	
 	GameManager gameManager(config);
 	VictoryScreen* victoryScreen = nullptr;
@@ -82,7 +89,7 @@ int main()
 			// text input for seed
 			if (event.type == sf::Event::TextEntered && gameState == GameState::SETTINGS)
 			{
-				settingsMenu.handleTextInput(event.text.unicode);
+				settingsMenu->handleTextInput(event.text.unicode);
 			}
 
 			if (event.type == sf::Event::KeyPressed)
@@ -92,9 +99,9 @@ int main()
 				}
 				else if (gameState == GameState::SETTINGS)
 				{
-					settingsMenu.handleInput(event.key.code);
+					settingsMenu->handleInput(event.key.code);
 					
-					if (event.key.code == sf::Keyboard::Escape && !escPressed && !settingsMenu.isEditingSeed())
+					if (event.key.code == sf::Keyboard::Escape && !escPressed && !settingsMenu->isEditingSeed())
 					{
 						gameState = previousState;
 						escPressed = true;
@@ -104,17 +111,17 @@ int main()
 				{
 					if (event.key.code == sf::Keyboard::Up)
 					{
-						menu.moveUp();
+						menu->moveUp();
 					}
 					else if (event.key.code == sf::Keyboard::Down)
 					{
-						menu.moveDown();
+						menu->moveDown();
 					}
 					else if (event.key.code == sf::Keyboard::Enter)
 					{
-						int selected = menu.getSelectedItem();
+						int selected = menu->getSelectedItem();
 						
-						if (menu.isInGameMode())
+						if (menu->isInGameMode())
 						{
 							// in-game menu
 							if (selected == 0) // CONTINUE
@@ -157,9 +164,9 @@ int main()
 								}
 								
 								gameState = GameState::PLAYING;
-								menu.setInGameMode(true); // Переключаем меню в режим "во время игры"
-								firstMouse = true; // Сбрасываем флаг мыши
-								window.setMouseCursorVisible(false); // Скрываем курсор
+								menu->setInGameMode(true);
+								firstMouse = true;
+								window.setMouseCursorVisible(false);
 								std::cout << "Game started!" << std::endl;
 							}
 							else if (selected == 1) // SETTINGS
@@ -183,8 +190,8 @@ int main()
 					if (event.key.code == sf::Keyboard::Escape)
 					{
 						gameState = GameState::MENU;
-						menu.setInGameMode(true); // Показываем меню "во время игры"
-						window.setMouseCursorVisible(true); // Показываем курсор
+						menu->setInGameMode(true);
+						window.setMouseCursorVisible(true);
 						std::cout << "Back to menu" << std::endl;
 					}
 					else if (event.key.code == sf::Keyboard::Tab && !tabPressed)
@@ -211,11 +218,11 @@ int main()
 				if (gameState == GameState::MENU)
 				{
 					sf::Vector2i mousePos = sf::Mouse::getPosition(window);
-					if (menu.handleMouseClick(mousePos))
+					if (menu->handleMouseClick(mousePos))
 					{
-						int selected = menu.getSelectedItem();
+						int selected = menu->getSelectedItem();
 						
-						if (menu.isInGameMode())
+						if (menu->isInGameMode())
 						{
 							if (selected == 0) // CONTINUE
 							{
@@ -256,7 +263,7 @@ int main()
 								}
 								
 								gameState = GameState::PLAYING;
-								menu.setInGameMode(true);
+								menu->setInGameMode(true);
 								firstMouse = true;
 								window.setMouseCursorVisible(false);
 								std::cout << "Game started!" << std::endl;
@@ -276,7 +283,7 @@ int main()
 				else if (gameState == GameState::SETTINGS)
 				{
 					sf::Vector2i mousePos = sf::Mouse::getPosition(window);
-					settingsMenu.handleMouseClick(mousePos);
+					settingsMenu->handleMouseClick(mousePos);
 				}
 			}
 			
@@ -285,13 +292,13 @@ int main()
 				if (gameState == GameState::MENU)
 				{
 					sf::Vector2i mousePos = sf::Mouse::getPosition(window);
-					menu.handleMouseMove(mousePos);
+					menu->handleMouseMove(mousePos);
 				}
 				else if (gameState == GameState::SETTINGS)
 				{
 					sf::Vector2i mousePos = sf::Mouse::getPosition(window);
 					bool isPressed = sf::Mouse::isButtonPressed(sf::Mouse::Left);
-					settingsMenu.handleMouseMove(mousePos, isPressed);
+					settingsMenu->handleMouseMove(mousePos, isPressed);
 				}
 			}
 			
@@ -311,15 +318,74 @@ int main()
 				}
 			}
 		}
+		
+		// hot-reload settings
+		bool needsWindowRecreate = (config.screenWidth != lastScreenWidth || 
+		                            config.screenHeight != lastScreenHeight || 
+		                            config.fullscreen != lastFullscreen);
+		bool needsFPSUpdate = (config.targetFPS != lastTargetFPS);
+		
+		if (needsWindowRecreate)
+		{
+			std::cout << "Applying new video settings..." << std::endl;
+			
+			sf::Uint32 newStyle = config.fullscreen ? sf::Style::Fullscreen : sf::Style::Close;
+			window.create(sf::VideoMode(config.screenWidth, config.screenHeight), "Lumen_Exit()", newStyle);
+			window.setFramerateLimit(config.targetFPS);
+			
+			if (gameState == GameState::PLAYING || gameState == GameState::MENU)
+			{
+				window.setMouseCursorVisible(gameState != GameState::PLAYING);
+			}
+			
+			// recreate UI with new dimensions
+			delete loadingScreen;
+			delete menu;
+			delete settingsMenu;
+			
+			loadingScreen = new LoadingScreen(static_cast<float>(config.screenWidth), static_cast<float>(config.screenHeight));
+			menu = new Menu(static_cast<float>(config.screenWidth), static_cast<float>(config.screenHeight));
+			settingsMenu = new SettingsMenu(static_cast<float>(config.screenWidth), static_cast<float>(config.screenHeight), config);
+			
+			// keep menu state
+			if (gameManager.isInitialized())
+			{
+				menu->setInGameMode(true);
+			}
+			
+			lastScreenWidth = config.screenWidth;
+			lastScreenHeight = config.screenHeight;
+			lastFullscreen = config.fullscreen;
+			lastTargetFPS = config.targetFPS;
+			
+			std::cout << "New resolution: " << config.screenWidth << "x" << config.screenHeight << std::endl;
+		}
+		else if (needsFPSUpdate)
+		{
+			window.setFramerateLimit(config.targetFPS);
+			lastTargetFPS = config.targetFPS;
+			std::cout << "FPS limit set to: " << config.targetFPS << std::endl;
+		}
+		
+		// hot-reload lighting quality
+		if (config.lightingQuality != lastLightingQuality)
+		{
+			if (gameManager.isInitialized() && gameManager.getRaycaster() != nullptr)
+			{
+				gameManager.getRaycaster()->setLightingQuality(config.lightingQuality);
+				std::cout << "Lighting quality updated" << std::endl;
+			}
+			lastLightingQuality = config.lightingQuality;
+		}
 
 		window.clear(sf::Color(0, 0, 0));
 
 		if (gameState == GameState::LOADING)
 		{
-			loadingScreen.update(deltaTime);
-			loadingScreen.draw(window);
+			loadingScreen->update(deltaTime);
+			loadingScreen->draw(window);
 			
-			if (loadingScreen.isFinished())
+			if (loadingScreen->isFinished())
 			{
 				gameState = GameState::MENU;
 				std::cout << "Use Arrow Keys to navigate, Enter to select, ESC to exit" << std::endl;
@@ -327,11 +393,11 @@ int main()
 		}
 		else if (gameState == GameState::MENU)
 		{
-			menu.draw(window);
+			menu->draw(window);
 		}
 		else if (gameState == GameState::SETTINGS)
 		{
-			settingsMenu.draw(window);
+			settingsMenu->draw(window);
 		}
 		else if (gameState == GameState::PLAYING)
 		{
@@ -419,7 +485,7 @@ int main()
 					delete victoryScreen;
 					victoryScreen = nullptr;
 					gameTime = 0.0f;
-					menu.setInGameMode(false);
+					menu->setInGameMode(false);
 					
 					std::cout << "Returning to menu..." << std::endl;
 				}
@@ -430,6 +496,10 @@ int main()
 	}
 	
 	config.saveToFile("config.txt");
+	
+	delete loadingScreen;
+	delete menu;
+	delete settingsMenu;
 	delete victoryScreen;
 
 	return 0;
