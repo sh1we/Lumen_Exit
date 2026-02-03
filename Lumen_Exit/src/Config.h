@@ -4,6 +4,13 @@
 #include <sstream>
 #include <iostream>
 
+enum class LightingQuality
+{
+    LOW = 0,    // 2 samples + interpolation
+    MEDIUM = 1, // 3 samples
+    HIGH = 2    // 5 samples (adaptive)
+};
+
 struct GameConfig
 {
     // Видео настройки
@@ -11,6 +18,9 @@ struct GameConfig
     int screenHeight = 720;
     int targetFPS = 60;
     bool fullscreen = false;
+    
+    // Графика
+    LightingQuality lightingQuality = LightingQuality::HIGH;
     
     // Управление
     float mouseSensitivity = 0.001f;

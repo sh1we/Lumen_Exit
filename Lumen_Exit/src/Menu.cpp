@@ -1,4 +1,5 @@
 #include "Menu.h"
+#include "ResourceManager.h"
 #include <iostream>
 
 Menu::Menu(float width, float height)
@@ -7,15 +8,8 @@ Menu::Menu(float width, float height)
     , m_height(height)
     , m_inGameMode(false)
 {
-    // Используем моноширинный шрифт Courier New для ретро-вайба
-    if (!m_font.loadFromFile("C:\\Windows\\Fonts\\cour.ttf"))
-    {
-        std::cerr << "Error loading Courier New font!" << std::endl;
-    }
-    else
-    {
-        std::cout << "Courier New font loaded successfully!" << std::endl;
-    }
+    m_font = ResourceManager::getInstance().getFont();
+    std::cout << "Font loaded from ResourceManager!" << std::endl;
 
     rebuildMenu();
 }
@@ -34,17 +28,14 @@ void Menu::rebuildMenu()
     m_menuItems.clear();
     m_selectedItemIndex = 0;
     
-    // Создаем пункты меню в зависимости от режима
     std::vector<std::string> items;
     
     if (m_inGameMode)
     {
-        // Меню во время игры
         items = { "CONTINUE", "NEW GAME", "SETTINGS", "EXIT" };
     }
     else
     {
-        // Меню до начала игры
         items = { "START GAME", "SETTINGS", "EXIT" };
     }
     
@@ -56,7 +47,6 @@ void Menu::rebuildMenu()
         text.setCharacterSize(50);
         text.setFillColor(i == 0 ? sf::Color(200, 200, 200) : sf::Color(80, 80, 80));
         
-        // Центрируем текст
         sf::FloatRect textRect = text.getLocalBounds();
         text.setOrigin(textRect.left + textRect.width / 2.0f, textRect.top + textRect.height / 2.0f);
         text.setPosition(sf::Vector2f(m_width / 2.0f, m_height / 2.0f + static_cast<float>(i) * 80.0f));
@@ -67,7 +57,6 @@ void Menu::rebuildMenu()
 
 void Menu::draw(sf::RenderWindow& window)
 {
-    // Заголовок игры
     sf::Text title;
     title.setFont(m_font);
     title.setString("Lumen_Exit()");
@@ -81,7 +70,6 @@ void Menu::draw(sf::RenderWindow& window)
     
     window.draw(title);
     
-    // Подзаголовок
     sf::Text subtitle;
     subtitle.setFont(m_font);
     subtitle.setString("\"In the void of uninitialized memory, light is your only pointer.\"");
@@ -95,7 +83,6 @@ void Menu::draw(sf::RenderWindow& window)
     
     window.draw(subtitle);
     
-    // Пункты меню
     for (const auto& item : m_menuItems)
     {
         window.draw(item);

@@ -1,4 +1,5 @@
 #include "SettingsMenu.h"
+#include "ResourceManager.h"
 #include <iostream>
 #include <sstream>
 #include <iomanip>
@@ -10,12 +11,8 @@ SettingsMenu::SettingsMenu(float width, float height, GameConfig& config)
     , m_selectedOption(0)
     , m_needsRestart(false)
 {
-    if (!m_font.loadFromFile("C:\\Windows\\Fonts\\cour.ttf"))
-    {
-        std::cerr << "Error loading font for settings menu!" << std::endl;
-    }
+    m_font = ResourceManager::getInstance().getFont();
     
-    // Доступные разрешения
     m_resolutions = {
         {1280, 720},
         {1600, 900},
@@ -23,7 +20,6 @@ SettingsMenu::SettingsMenu(float width, float height, GameConfig& config)
         {2560, 1440}
     };
     
-    // Доступные FPS
     m_fpsOptions = {30, 60, 120, 144, 240};
     
     findCurrentResolution();
@@ -46,7 +42,7 @@ void SettingsMenu::findCurrentResolution()
 
 void SettingsMenu::findCurrentFps()
 {
-    m_currentFpsIndex = 1; // По умолчанию 60
+    m_currentFpsIndex = 1;  // default 60
     for (size_t i = 0; i < m_fpsOptions.size(); ++i)
     {
         if (m_fpsOptions[i] == m_config.targetFPS)
@@ -59,7 +55,6 @@ void SettingsMenu::findCurrentFps()
 
 void SettingsMenu::draw(sf::RenderWindow& window)
 {
-    // Заголовок
     sf::Text title;
     title.setFont(m_font);
     title.setString("SETTINGS");
@@ -74,7 +69,7 @@ void SettingsMenu::draw(sf::RenderWindow& window)
     
     float yPos = 200.0f;
     
-    // 1. Чувствительность мыши
+    // mouse sensitivity
     {
         std::ostringstream sensStr;
         sensStr << "Mouse Sensitivity: " << std::fixed << std::setprecision(3) << m_config.mouseSensitivity;
@@ -90,7 +85,7 @@ void SettingsMenu::draw(sf::RenderWindow& window)
         sensText.setPosition(sf::Vector2f(m_width / 2.0f, yPos));
         window.draw(sensText);
         
-        // Бар чувствительности
+        // slider bar
         float barWidth = 400.0f;
         float barHeight = 15.0f;
         float barX = m_width / 2.0f - barWidth / 2.0f;
@@ -116,7 +111,7 @@ void SettingsMenu::draw(sf::RenderWindow& window)
         yPos += 80.0f;
     }
     
-    // 2. Разрешение
+    // resolution
     {
         std::ostringstream resStr;
         resStr << "Resolution: " << m_resolutions[m_currentResolutionIndex].width 
@@ -136,7 +131,7 @@ void SettingsMenu::draw(sf::RenderWindow& window)
         yPos += 50.0f;
     }
     
-    // 3. FPS
+    // fps
     {
         std::ostringstream fpsStr;
         fpsStr << "Target FPS: " << m_fpsOptions[m_currentFpsIndex];
@@ -155,7 +150,7 @@ void SettingsMenu::draw(sf::RenderWindow& window)
         yPos += 50.0f;
     }
     
-    // 4. Fullscreen
+    // fullscreen
     {
         std::ostringstream fullscreenStr;
         fullscreenStr << "Fullscreen: " << (m_config.fullscreen ? "ON" : "OFF");
@@ -174,7 +169,7 @@ void SettingsMenu::draw(sf::RenderWindow& window)
         yPos += 80.0f;
     }
     
-    // Подсказки
+    // hints
     sf::Text hint;
     hint.setFont(m_font);
     hint.setString("UP/DOWN: Select | LEFT/RIGHT: Change | ESC: Back");
@@ -186,7 +181,7 @@ void SettingsMenu::draw(sf::RenderWindow& window)
     hint.setPosition(sf::Vector2f(m_width / 2.0f, m_height - 80.0f));
     window.draw(hint);
     
-    // Предупреждение о рестарте
+    // restart warning
     if (m_needsRestart)
     {
         sf::Text warning;
@@ -278,15 +273,15 @@ void SettingsMenu::handleInput(sf::Keyboard::Key key)
 
 void SettingsMenu::handleMouseClick(const sf::Vector2i& mousePos)
 {
-    // Пока оставим пустым, можно добавить клик по опциям
+    // TODO: click on options
 }
 
 void SettingsMenu::handleMouseMove(const sf::Vector2i& mousePos, bool isPressed)
 {
-    // Пока оставим пустым
+    // TODO
 }
 
 void SettingsMenu::updateSensitivityFromMouse(float mouseX)
 {
-    // Пока оставим пустым
+    // TODO
 }

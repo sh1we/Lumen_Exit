@@ -3,5 +3,6 @@ screenWidth=1920
 screenHeight=1080
 targetFPS=240
 fullscreen=1
+lightingQuality=2
 mouseSensitivity=0.001
 bestTime=999999

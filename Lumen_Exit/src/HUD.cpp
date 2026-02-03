@@ -1,6 +1,7 @@
 #include "HUD.h"
 #include "Player.h"
 #include "LightSystem.h"
+#include "ResourceManager.h"
 #include <iostream>
 #include <sstream>
 #include <iomanip>
@@ -9,15 +10,11 @@ HUD::HUD(int screenWidth, int screenHeight)
     : m_screenWidth(screenWidth)
     , m_screenHeight(screenHeight)
 {
-    if (!m_font.loadFromFile("C:\\Windows\\Fonts\\cour.ttf"))
-    {
-        std::cerr << "Error loading font for HUD!" << std::endl;
-    }
+    m_font = ResourceManager::getInstance().getFont();
 }
 
 void HUD::draw(sf::RenderWindow& window, const Player& player, float gameTime, const LightSystem& lightSystem)
 {
-    // Полупрозрачный фон для HUD (увеличен)
     sf::RectangleShape hudBackground(sf::Vector2f(280.0f, 140.0f));
     hudBackground.setPosition(10.0f, static_cast<float>(m_screenHeight) - 150.0f);
     hudBackground.setFillColor(sf::Color(0, 0, 0, 180));
@@ -25,7 +22,7 @@ void HUD::draw(sf::RenderWindow& window, const Player& player, float gameTime, c
     
     float yPos = static_cast<float>(m_screenHeight) - 140.0f;
     
-    // Время
+    // time
     int minutes = static_cast<int>(gameTime) / 60;
     int seconds = static_cast<int>(gameTime) % 60;
     std::ostringstream timeStr;
@@ -42,7 +39,7 @@ void HUD::draw(sf::RenderWindow& window, const Player& player, float gameTime, c
     
     yPos += 25.0f;
     
-    // Батарея фонарика
+    // battery
     float battery = lightSystem.getFlashlightBattery();
     std::ostringstream batteryStr;
     batteryStr << "Battery: " << std::fixed << std::setprecision(0) << battery << "%";
@@ -52,7 +49,6 @@ void HUD::draw(sf::RenderWindow& window, const Player& player, float gameTime, c
     batteryText.setString(batteryStr.str());
     batteryText.setCharacterSize(16);
     
-    // Цвет зависит от заряда
     if (battery > 50.0f)
         batteryText.setFillColor(sf::Color(100, 255, 100));
     else if (battery > 20.0f)
@@ -63,7 +59,6 @@ void HUD::draw(sf::RenderWindow& window, const Player& player, float gameTime, c
     batteryText.setPosition(20.0f, yPos);
     window.draw(batteryText);
     
-    // Индикатор состояния фонарика (компактно)
     if (!lightSystem.isFlashlightEnabled())
     {
         sf::Text flashlightOff;
@@ -87,12 +82,11 @@ void HUD::draw(sf::RenderWindow& window, const Player& player, float gameTime, c
     
     yPos += 20.0f;
     
-    // Бар батареи
+    // battery bar
     float batteryBarWidth = 250.0f;
     float batteryBarHeight = 12.0f;
     float batteryPercent = battery / 100.0f;
     
-    // Фон бара
     sf::RectangleShape batteryBarBg(sf::Vector2f(batteryBarWidth, batteryBarHeight));
     batteryBarBg.setPosition(20.0f, yPos);
     batteryBarBg.setFillColor(sf::Color(50, 50, 50));
@@ -100,7 +94,6 @@ void HUD::draw(sf::RenderWindow& window, const Player& player, float gameTime, c
     batteryBarBg.setOutlineThickness(1.0f);
     window.draw(batteryBarBg);
     
-    // Заполнение бара
     sf::RectangleShape batteryBar(sf::Vector2f(batteryBarWidth * batteryPercent, batteryBarHeight));
     batteryBar.setPosition(20.0f, yPos);
     
@@ -115,7 +108,7 @@ void HUD::draw(sf::RenderWindow& window, const Player& player, float gameTime, c
     
     yPos += 20.0f;
     
-    // Стамина - текст
+    // stamina
     std::ostringstream staminaStr;
     staminaStr << "Stamina: " << static_cast<int>(player.getStaminaPercent()) << "%";
     
@@ -124,7 +117,6 @@ void HUD::draw(sf::RenderWindow& window, const Player& player, float gameTime, c
     staminaText.setString(staminaStr.str());
     staminaText.setCharacterSize(16);
     
-    // Красный текст если истощение
     if (player.isStaminaExhausted())
         staminaText.setFillColor(sf::Color(255, 100, 100));
     else
@@ -133,7 +125,6 @@ void HUD::draw(sf::RenderWindow& window, const Player& player, float gameTime, c
     staminaText.setPosition(20.0f, yPos);
     window.draw(staminaText);
     
-    // Индикатор истощения (компактно)
     if (player.isStaminaExhausted())
     {
         sf::Text exhausted;
@@ -147,12 +138,11 @@ void HUD::draw(sf::RenderWindow& window, const Player& player, float gameTime, c
     
     yPos += 20.0f;
     
-    // Стамина - бар
+    // stamina bar
     float staminaBarWidth = 250.0f;
     float staminaBarHeight = 12.0f;
     float staminaPercent = player.getStamina() / player.getMaxStamina();
     
-    // Фон бара
     sf::RectangleShape staminaBarBg(sf::Vector2f(staminaBarWidth, staminaBarHeight));
     staminaBarBg.setPosition(20.0f, yPos);
     staminaBarBg.setFillColor(sf::Color(50, 50, 50));
@@ -160,11 +150,9 @@ void HUD::draw(sf::RenderWindow& window, const Player& player, float gameTime, c
     staminaBarBg.setOutlineThickness(1.0f);
     window.draw(staminaBarBg);
     
-    // Заполнение бара
     sf::RectangleShape staminaBar(sf::Vector2f(staminaBarWidth * staminaPercent, staminaBarHeight));
     staminaBar.setPosition(20.0f, yPos);
     
-    // Цвет зависит от уровня стамины
     if (player.isStaminaExhausted())
         staminaBar.setFillColor(sf::Color(255, 50, 50));
     else if (staminaPercent > 0.5f)
@@ -176,7 +164,7 @@ void HUD::draw(sf::RenderWindow& window, const Player& player, float gameTime, c
     
     window.draw(staminaBar);
     
-    // Маркер порога восстановления
+    // threshold marker when exhausted
     if (player.isStaminaExhausted())
     {
         float threshold = player.getExhaustionThreshold();
@@ -186,7 +174,7 @@ void HUD::draw(sf::RenderWindow& window, const Player& player, float gameTime, c
         window.draw(marker);
     }
     
-    // Подсказка Tab (внизу справа)
+    // controls hint
     sf::Text hintText;
     hintText.setFont(m_font);
     hintText.setString("TAB: Map | F: Flashlight");

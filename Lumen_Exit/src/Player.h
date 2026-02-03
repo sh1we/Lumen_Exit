@@ -1,6 +1,6 @@
 #pragma once
 #include <cmath>
-#include <set>
+#include <unordered_set>
 
 class Map;
 
@@ -16,8 +16,8 @@ public:
     float getX() const { return m_x; }
     float getY() const { return m_y; }
     float getAngle() const { return m_angle; }
-    float getDirX() const { return std::cos(m_angle); }
-    float getDirY() const { return std::sin(m_angle); }
+    float getDirX() const { return m_cachedDirX; } // ОПТИМИЗАЦИЯ: используем кэш
+    float getDirY() const { return m_cachedDirY; } // ОПТИМИЗАЦИЯ: используем кэш
     
     bool hasVisited(int x, int y) const { return m_visitedTiles.count(y * 1000 + x) > 0; }
     bool hasReachedExit() const { return m_reachedExit; }
@@ -33,15 +33,21 @@ public:
     float getExhaustionThreshold() const { return m_exhaustionThreshold; }
     
 private:
+    void updateDirection(); // ОПТИМИЗАЦИЯ: обновляет кэш направления
+    
     float m_x;          // Позиция X
     float m_y;          // Позиция Y
     float m_angle;      // Угол поворота (в радианах)
+    
+    // ОПТИМИЗАЦИЯ: кэшированное направление
+    float m_cachedDirX;
+    float m_cachedDirY;
     
     float m_moveSpeed;  // Скорость движения
     float m_rotSpeed;   // Скорость поворота
     bool m_sprint;      // Ускорение
     
-    std::set<int> m_visitedTiles; // Fog of war - посещенные клетки
+    std::unordered_set<int> m_visitedTiles; // Fog of war - посещенные клетки (оптимизировано)
     bool m_reachedExit; // Достиг ли игрок выхода
     
     // Система стамины

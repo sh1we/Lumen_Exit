@@ -2,16 +2,25 @@
 #include "Player.h"
 #include "Map.h"
 #include "LightSystem.h"
+#include "Config.h"
+#include "MathUtils.h"
 #include <cmath>
 #include <algorithm>
 
-const float PI = 3.14159265359f;
+const float PI = MathUtils::PI;
 
 Raycaster::Raycaster(int screenWidth, int screenHeight)
     : m_screenWidth(screenWidth)
     , m_screenHeight(screenHeight)
-    , m_fov(PI / 3.0f) // 60 градусов
+    , m_fov(PI / 3.0f)  // 60 deg
+    , m_floorCeiling(sf::Quads)
+    , m_wallSlices(sf::Quads)
+    , m_lightingQuality(LightingQuality::HIGH)
+    , m_lastLighting(0.0f)
 {
+    // preallocate so we don't thrash memory every frame
+    m_floorCeiling.resize(screenWidth * 8);
+    m_wallSlices.resize(screenWidth * 4);
 }
 
 Raycaster::RayHit Raycaster::castRay(float rayAngle, const Player& player, const Map& map)
@@ -20,16 +29,17 @@ Raycaster::RayHit Raycaster::castRay(float rayAngle, const Player& player, const
     hit.distance = 1000.0f;
     hit.hitVertical = false;
     
-    float rayDirX = std::cos(rayAngle);
-    float rayDirY = std::sin(rayAngle);
+    float rayDirX, rayDirY;
+    MathUtils::sincos_fast(rayAngle, rayDirY, rayDirX);
     
-    // DDA Algorithm
+    // DDA - the classic wolfenstein way
     float posX = player.getX();
     float posY = player.getY();
     
     int mapX = static_cast<int>(posX);
     int mapY = static_cast<int>(posY);
     
+    // avoid div by zero with a big number
     float deltaDistX = (rayDirX == 0) ? 1e30f : std::abs(1.0f / rayDirX);
     float deltaDistY = (rayDirY == 0) ? 1e30f : std::abs(1.0f / rayDirY);
     
@@ -58,9 +68,8 @@ Raycaster::RayHit Raycaster::castRay(float rayAngle, const Player& player, const
         sideDistY = (mapY + 1.0f - posY) * deltaDistY;
     }
     
-    // Бросаем луч до столкновения со стеной
     bool hitWall = false;
-    int side = 0; // 0 = вертикальная стена, 1 = горизонтальная
+    int side = 0;  // 0 = vertical, 1 = horizontal
     
     while (!hitWall && hit.distance > 0.1f)
     {
@@ -83,7 +92,6 @@ Raycaster::RayHit Raycaster::castRay(float rayAngle, const Player& player, const
         }
     }
     
-    // Вычисляем расстояние до стены и точную позицию попадания
     if (side == 0)
     {
         hit.distance = (mapX - posX + (1 - stepX) / 2) / rayDirX;
@@ -107,77 +115,105 @@ Raycaster::RayHit Raycaster::castRay(float rayAngle, const Player& player, const
 
 void Raycaster::render(sf::RenderWindow& window, const Player& player, const Map& map, const LightSystem& lightSystem)
 {
-    // Создаем буфер для отрисовки (оптимизация)
-    sf::VertexArray floorCeiling(sf::Quads);
-    sf::VertexArray wallSlices(sf::Quads);
+    m_floorCeiling.clear();
+    m_wallSlices.clear();
     
-    // Отрисовка каждого вертикального столбца экрана
     for (int x = 0; x < m_screenWidth; ++x)
     {
-        // Вычисляем угол луча для текущего столбца
         float cameraX = 2.0f * x / static_cast<float>(m_screenWidth) - 1.0f;
         float rayAngle = player.getAngle() + std::atan(cameraX * std::tan(m_fov / 2.0f));
         
-        // Бросаем луч
         RayHit hit = castRay(rayAngle, player, map);
         
-        // Исправляем fish-eye эффект
-        float correctedDistance = hit.distance * std::cos(rayAngle - player.getAngle());
+        // fish-eye fix
+        float angleDiff = rayAngle - player.getAngle();
         
-        // Вычисляем высоту стены на экране
+        // keep angle in [-PI, PI] or things get weird
+        while (angleDiff > PI) angleDiff -= 2.0f * PI;
+        while (angleDiff < -PI) angleDiff += 2.0f * PI;
+        
+        float correctedDistance = hit.distance * std::cos(angleDiff);
+        
+        if (correctedDistance < 0.1f)
+            correctedDistance = 0.1f;
+        
         int wallHeight = static_cast<int>(m_screenHeight / correctedDistance);
         
-        // Вычисляем позицию стены по вертикали
+        // sanity check
+        if (wallHeight > m_screenHeight * 10)
+            wallHeight = m_screenHeight * 10;
+        
         int drawStart = (m_screenHeight - wallHeight) / 2;
         int drawEnd = drawStart + wallHeight;
         
-        // НОВОЕ: Вычисляем среднюю освещенность вдоль луча (volumetric)
-        // Берем несколько точек вдоль луча и усредняем освещенность
-        float totalLighting = 0.0f;
-        int samples = 5; // Фиксированное количество сэмплов для стабильности
+        // adaptive sampling - more samples up close where it matters
+        int samples;
+        bool useInterpolation = false;
         
-        float rayDirX = std::cos(rayAngle);
-        float rayDirY = std::sin(rayAngle);
-        
-        // Ограничиваем максимальную дистанцию для сэмплинга
-        float maxSampleDist = std::min(correctedDistance, 15.0f);
-        
-        for (int i = 0; i < samples; ++i)
+        switch (m_lightingQuality)
         {
-            float t = (static_cast<float>(i) / static_cast<float>(samples - 1)) * maxSampleDist;
-            float sampleX = player.getX() + rayDirX * t;
-            float sampleY = player.getY() + rayDirY * t;
-            
-            float lighting = lightSystem.calculateLighting(sampleX, sampleY, player, map);
-            
-            // Добавляем fog эффект - дальние точки темнее
-            float fogFactor = 1.0f - (t / maxSampleDist);
-            fogFactor = fogFactor * fogFactor; // Квадратичное затухание
-            
-            totalLighting += lighting * (0.5f + 0.5f * fogFactor); // Fog влияет на 50%
+            case LightingQuality::LOW:
+                samples = 2;
+                useInterpolation = (x % 2 == 1);  // skip every other ray
+                break;
+            case LightingQuality::MEDIUM:
+                samples = 3;
+                break;
+            case LightingQuality::HIGH:
+            default:
+                samples = correctedDistance < 4.0f ? 5 : 3;
+                break;
         }
         
-        float avgLighting = totalLighting / static_cast<float>(samples);
+        float avgLighting;
         
-        // Дополнительно учитываем освещенность точки попадания (стена может быть ярче)
-        float wallLighting = lightSystem.calculateLighting(hit.hitX, hit.hitY, player, map);
+        if (useInterpolation && x > 0)
+        {
+            avgLighting = m_lastLighting;
+        }
+        else
+        {
+            // volumetric lighting - sample along the ray
+            float totalLighting = 0.0f;
+            
+            float rayDirX = std::cos(rayAngle);
+            float rayDirY = std::sin(rayAngle);
+            
+            float maxSampleDist = std::min(correctedDistance, 15.0f);
+            
+            for (int i = 0; i < samples; ++i)
+            {
+                float t = (static_cast<float>(i) / static_cast<float>(samples - 1)) * maxSampleDist;
+                float sampleX = player.getX() + rayDirX * t;
+                float sampleY = player.getY() + rayDirY * t;
+                
+                float lighting = lightSystem.calculateLighting(sampleX, sampleY, player, map);
+                
+                // fog falloff
+                float fogFactor = 1.0f - (t / maxSampleDist);
+                fogFactor = fogFactor * fogFactor;
+                
+                totalLighting += lighting * (0.5f + 0.5f * fogFactor);
+            }
+            
+            avgLighting = totalLighting / static_cast<float>(samples);
+            
+            // blend with wall hit point lighting
+            float wallLighting = lightSystem.calculateLighting(hit.hitX, hit.hitY, player, map);
+            avgLighting = avgLighting * 0.6f + wallLighting * 0.4f;
+            
+            m_lastLighting = avgLighting;
+        }
         
-        // Комбинируем: 60% объемный свет + 40% освещение стены
-        float finalLighting = avgLighting * 0.6f + wallLighting * 0.4f;
-        
-        // НОВОЕ: Добавляем дистанционный туман ТОЛЬКО для ambient света
-        // Свет от комнат и фонарика не затухает туманом, только ambient
-        // Без фонарика ambient видно только 0.8 метра, с фонариком - 6 метров
+        // fog only affects ambient, not light sources (so you can't cheat with monitor brightness)
         float fogDistance = lightSystem.isFlashlightEnabled() && lightSystem.getFlashlightBattery() > 0.0f ? 6.0f : 0.8f;
         
-        // Вычисляем ambient компонент (минимальный свет без источников)
-        float ambientComponent = 0.03f; // 3% ambient
+        float ambientComponent = 0.03f;  // 3% base visibility
         
-        // Применяем туман только к ambient компоненту
         float distanceFog = 1.0f;
         if (correctedDistance > fogDistance)
         {
-            distanceFog = 0.0f; // Ambient полностью исчезает
+            distanceFog = 0.0f;
         }
         else
         {
@@ -185,74 +221,62 @@ void Raycaster::render(sf::RenderWindow& window, const Player& player, const Map
             distanceFog = 1.0f - (fogRatio * fogRatio * fogRatio * fogRatio);
         }
         
-        // Разделяем освещение на ambient и источники света
-        float lightSourceComponent = std::max(0.0f, finalLighting - ambientComponent);
+        float lightSourceComponent = std::max(0.0f, avgLighting - ambientComponent);
         float foggedAmbient = ambientComponent * distanceFog;
         
-        // Итоговое освещение: источники света (без тумана) + ambient (с туманом)
-        finalLighting = lightSourceComponent + foggedAmbient;
-        
-        // Базовая яркость стены с учетом освещения
+        float finalLighting = lightSourceComponent + foggedAmbient;
         float baseBrightness = finalLighting;
         
-        // Разный оттенок для вертикальных и горизонтальных стен
+        // horizontal walls slightly darker for depth
         float wallBrightness = baseBrightness * (hit.hitVertical ? 1.0f : 0.8f);
         
         int colorValue = static_cast<int>(wallBrightness * 255.0f);
         colorValue = std::max(0, std::min(255, colorValue));
         sf::Color wallColor(colorValue, colorValue, colorValue);
         
-        // Добавляем вертикальную линию стены в буфер
         float xPos = static_cast<float>(x);
         float yStart = static_cast<float>(drawStart);
         float yEnd = static_cast<float>(drawEnd);
         
-        wallSlices.append(sf::Vertex(sf::Vector2f(xPos, yStart), wallColor));
-        wallSlices.append(sf::Vertex(sf::Vector2f(xPos + 1.0f, yStart), wallColor));
-        wallSlices.append(sf::Vertex(sf::Vector2f(xPos + 1.0f, yEnd), wallColor));
-        wallSlices.append(sf::Vertex(sf::Vector2f(xPos, yEnd), wallColor));
+        m_wallSlices.append(sf::Vertex(sf::Vector2f(xPos, yStart), wallColor));
+        m_wallSlices.append(sf::Vertex(sf::Vector2f(xPos + 1.0f, yStart), wallColor));
+        m_wallSlices.append(sf::Vertex(sf::Vector2f(xPos + 1.0f, yEnd), wallColor));
+        m_wallSlices.append(sf::Vertex(sf::Vector2f(xPos, yEnd), wallColor));
         
-        // Отрисовка пола и потолка с объемным освещением
-        // Потолок
+        // ceiling
         if (drawStart > 0)
         {
-            // Используем объемное освещение для потолка (темнее чем стены)
-            int ceilingValue = static_cast<int>(avgLighting * 20.0f); // Еще темнее
-            
-            // ВАЖНО: Применяем туман только к ambient части
             float lightSourceCeiling = std::max(0.0f, avgLighting - ambientComponent);
             float foggedAmbientCeiling = ambientComponent * distanceFog;
             float finalCeilingLight = lightSourceCeiling + foggedAmbientCeiling;
             
-            ceilingValue = static_cast<int>(finalCeilingLight * 20.0f);
+            int ceilingValue = static_cast<int>(finalCeilingLight * 20.0f);
             
             sf::Color ceilingColor(ceilingValue, ceilingValue, ceilingValue);
-            floorCeiling.append(sf::Vertex(sf::Vector2f(xPos, 0.0f), ceilingColor));
-            floorCeiling.append(sf::Vertex(sf::Vector2f(xPos + 1.0f, 0.0f), ceilingColor));
-            floorCeiling.append(sf::Vertex(sf::Vector2f(xPos + 1.0f, yStart), ceilingColor));
-            floorCeiling.append(sf::Vertex(sf::Vector2f(xPos, yStart), ceilingColor));
+            m_floorCeiling.append(sf::Vertex(sf::Vector2f(xPos, 0.0f), ceilingColor));
+            m_floorCeiling.append(sf::Vertex(sf::Vector2f(xPos + 1.0f, 0.0f), ceilingColor));
+            m_floorCeiling.append(sf::Vertex(sf::Vector2f(xPos + 1.0f, yStart), ceilingColor));
+            m_floorCeiling.append(sf::Vertex(sf::Vector2f(xPos, yStart), ceilingColor));
         }
         
-        // Пол
+        // floor (slightly brighter than ceiling)
         if (drawEnd < m_screenHeight)
         {
-            // Используем объемное освещение для пола
             float lightSourceFloor = std::max(0.0f, avgLighting - ambientComponent);
             float foggedAmbientFloor = ambientComponent * distanceFog;
             float finalFloorLight = lightSourceFloor + foggedAmbientFloor;
             
-            int floorValue = static_cast<int>(finalFloorLight * 30.0f); // Чуть светлее потолка
+            int floorValue = static_cast<int>(finalFloorLight * 30.0f);
             
             sf::Color floorColor(floorValue, floorValue, floorValue);
-            floorCeiling.append(sf::Vertex(sf::Vector2f(xPos, yEnd), floorColor));
-            floorCeiling.append(sf::Vertex(sf::Vector2f(xPos + 1.0f, yEnd), floorColor));
-            floorCeiling.append(sf::Vertex(sf::Vector2f(xPos + 1.0f, static_cast<float>(m_screenHeight)), floorColor));
-            floorCeiling.append(sf::Vertex(sf::Vector2f(xPos, static_cast<float>(m_screenHeight)), floorColor));
+            m_floorCeiling.append(sf::Vertex(sf::Vector2f(xPos, yEnd), floorColor));
+            m_floorCeiling.append(sf::Vertex(sf::Vector2f(xPos + 1.0f, yEnd), floorColor));
+            m_floorCeiling.append(sf::Vertex(sf::Vector2f(xPos + 1.0f, static_cast<float>(m_screenHeight)), floorColor));
+            m_floorCeiling.append(sf::Vertex(sf::Vector2f(xPos, static_cast<float>(m_screenHeight)), floorColor));
         }
     }
     
-    // Рисуем пол и потолок сначала
-    window.draw(floorCeiling);
-    // Потом стены поверх
-    window.draw(wallSlices);
+    // floor/ceiling first, walls on top
+    window.draw(m_floorCeiling);
+    window.draw(m_wallSlices);
 }

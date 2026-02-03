@@ -14,6 +14,7 @@ bool GameConfig::saveToFile(const std::string& filename)
     file << "screenHeight=" << screenHeight << "\n";
     file << "targetFPS=" << targetFPS << "\n";
     file << "fullscreen=" << (fullscreen ? 1 : 0) << "\n";
+    file << "lightingQuality=" << static_cast<int>(lightingQuality) << "\n";
     file << "mouseSensitivity=" << mouseSensitivity << "\n";
     file << "bestTime=" << bestTime << "\n";
     
@@ -34,11 +35,9 @@ bool GameConfig::loadFromFile(const std::string& filename)
     std::string line;
     while (std::getline(file, line))
     {
-        // Пропускаем комментарии и пустые строки
         if (line.empty() || line[0] == '#')
             continue;
         
-        // Парсим "key=value"
         size_t pos = line.find('=');
         if (pos == std::string::npos)
             continue;
@@ -46,7 +45,7 @@ bool GameConfig::loadFromFile(const std::string& filename)
         std::string key = line.substr(0, pos);
         std::string value = line.substr(pos + 1);
         
-        // Применяем настройки
+        // apply settings
         if (key == "screenWidth")
             screenWidth = std::stoi(value);
         else if (key == "screenHeight")
@@ -55,6 +54,12 @@ bool GameConfig::loadFromFile(const std::string& filename)
             targetFPS = std::stoi(value);
         else if (key == "fullscreen")
             fullscreen = (std::stoi(value) != 0);
+        else if (key == "lightingQuality")
+        {
+            int quality = std::stoi(value);
+            if (quality >= 0 && quality <= 2)
+                lightingQuality = static_cast<LightingQuality>(quality);
+        }
         else if (key == "mouseSensitivity")
             mouseSensitivity = std::stof(value);
         else if (key == "bestTime")

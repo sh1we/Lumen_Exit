@@ -6,7 +6,7 @@
 Minimap::Minimap(int screenWidth, int screenHeight)
     : m_screenWidth(screenWidth)
     , m_screenHeight(screenHeight)
-    , m_scale(10.0f) // 10 пикселей на клетку карты
+    , m_scale(10.0f)  // 10px per tile
 {
 }
 
@@ -15,10 +15,8 @@ void Minimap::draw(sf::RenderWindow& window, const Player& player, const Map& ma
     int mapWidth = map.getWidth();
     int mapHeight = map.getHeight();
     
-    // Используем VertexArray для оптимизации отрисовки
     sf::VertexArray tiles(sf::Quads);
     
-    // Отрисовка карты с fog of war
     for (int y = 0; y < mapHeight; ++y)
     {
         for (int x = 0; x < mapWidth; ++x)
@@ -29,32 +27,30 @@ void Minimap::draw(sf::RenderWindow& window, const Player& player, const Map& ma
             
             sf::Color tileColor;
             
-            // Проверяем, посещал ли игрок эту клетку
             if (!player.hasVisited(x, y))
             {
-                tileColor = sf::Color(15, 15, 15); // Очень темный (неизведанное)
+                tileColor = sf::Color(15, 15, 15);  // unexplored
             }
             else if (map.isWall(x, y))
             {
-                tileColor = sf::Color(180, 180, 180); // Очень светлые стены
+                tileColor = sf::Color(180, 180, 180);
             }
             else if (map.isInRoom(x, y))
             {
                 if (map.isInExitRoom(x, y))
                 {
-                    tileColor = sf::Color(255, 215, 0); // Золотой цвет для выхода
+                    tileColor = sf::Color(255, 215, 0);  // gold = exit
                 }
                 else
                 {
-                    tileColor = sf::Color(80, 255, 80); // Яркий зеленый для обычных комнат
+                    tileColor = sf::Color(80, 255, 80);  // green = safe room
                 }
             }
             else
             {
-                tileColor = sf::Color(90, 90, 90); // Светло-серые коридоры
+                tileColor = sf::Color(90, 90, 90);  // corridor
             }
             
-            // Добавляем квад в буфер
             tiles.append(sf::Vertex(sf::Vector2f(xPos, yPos), tileColor));
             tiles.append(sf::Vertex(sf::Vector2f(xPos + tileSize, yPos), tileColor));
             tiles.append(sf::Vertex(sf::Vector2f(xPos + tileSize, yPos + tileSize), tileColor));
@@ -62,7 +58,7 @@ void Minimap::draw(sf::RenderWindow& window, const Player& player, const Map& ma
         }
     }
     
-    // Темный полупрозрачный фон для миникарты
+    // background
     sf::RectangleShape background(sf::Vector2f(
         mapWidth * m_scale + 20.0f,
         mapHeight * m_scale + 20.0f
@@ -71,10 +67,9 @@ void Minimap::draw(sf::RenderWindow& window, const Player& player, const Map& ma
     background.setFillColor(sf::Color(10, 10, 10, 240));
     window.draw(background);
     
-    // Рисуем все тайлы одним вызовом
     window.draw(tiles);
     
-    // Яркая белая рамка вокруг миникарты
+    // border
     sf::RectangleShape border(sf::Vector2f(
         mapWidth * m_scale + 20.0f,
         mapHeight * m_scale + 20.0f
@@ -85,7 +80,7 @@ void Minimap::draw(sf::RenderWindow& window, const Player& player, const Map& ma
     border.setOutlineThickness(3.0f);
     window.draw(border);
     
-    // Отрисовка игрока (яркая желтая точка)
+    // player dot
     sf::CircleShape playerDot(m_scale / 2.0f);
     playerDot.setPosition(
         20.0f + player.getX() * m_scale - m_scale / 2.0f,
@@ -94,7 +89,7 @@ void Minimap::draw(sf::RenderWindow& window, const Player& player, const Map& ma
     playerDot.setFillColor(sf::Color(255, 255, 0));
     window.draw(playerDot);
     
-    // Направление взгляда игрока (яркая желтая линия)
+    // facing direction
     sf::Vertex line[] = {
         sf::Vertex(sf::Vector2f(20.0f + player.getX() * m_scale, 20.0f + player.getY() * m_scale), sf::Color(255, 255, 0)),
         sf::Vertex(sf::Vector2f(

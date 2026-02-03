@@ -7,13 +7,12 @@ Map::Map(int width, int height, unsigned int seed)
     : m_width(width), m_height(height)
     , m_spawnX(1), m_spawnY(1)
 {
-    // Размеры должны быть нечетными для алгоритма
+    // maze algo needs odd dimensions
     if (m_width % 2 == 0) m_width++;
     if (m_height % 2 == 0) m_height++;
     
-    m_tiles.resize(m_width * m_height, 1); // Заполняем стенами
+    m_tiles.resize(m_width * m_height, 1);  // all walls
     
-    // Генерируем лабиринт
     if (seed == 0)
     {
         seed = static_cast<unsigned int>(std::time(nullptr));
@@ -26,7 +25,7 @@ Map::Map(int width, int height, unsigned int seed)
 int Map::getTile(int x, int y) const
 {
     if (x < 0 || x >= m_width || y < 0 || y >= m_height)
-        return 1; // За границами карты - стена
+        return 1;  // out of bounds = wall
     
     return m_tiles[y * m_width + x];
 }
@@ -78,22 +77,17 @@ void Map::generateMaze(unsigned int seed)
 {
     std::mt19937 rng(seed);
     
-    // Сначала создаем комнаты (safe зоны)
-    addRooms(rng, 6); // 6 случайных комнат
-    
-    // Начинаем лабиринт с позиции (1, 1)
+    addRooms(rng, 6);
     recursiveBacktracker(1, 1, rng);
     
-    // Спавним игрока в центре первой комнаты
+    // spawn in first room, exit in farthest room
     if (!m_rooms.empty())
     {
         m_spawnX = m_rooms[0].centerX();
         m_spawnY = m_rooms[0].centerY();
         
-        // Выход находится в последней комнате (самой дальней от спавна)
         if (m_rooms.size() > 1)
         {
-            // Находим самую дальнюю комнату от спавна
             int maxDist = 0;
             int exitRoomIndex = static_cast<int>(m_rooms.size()) - 1;
             
@@ -130,9 +124,9 @@ void Map::recursiveBacktracker(int startX, int startY, std::mt19937& rng)
     std::stack<std::pair<int, int>> stack;
     stack.push({startX, startY});
     
-    m_tiles[startY * m_width + startX] = 0; // Делаем стартовую клетку проходимой
+    m_tiles[startY * m_width + startX] = 0;
     
-    // Направления: вверх, вправо, вниз, влево
+    // up, right, down, left
     const int dx[] = {0, 2, 0, -2};
     const int dy[] = {-2, 0, 2, 0};
     
@@ -140,7 +134,6 @@ void Map::recursiveBacktracker(int startX, int startY, std::mt19937& rng)
     {
         auto [x, y] = stack.top();
         
-        // Собираем непосещенных соседей
         std::vector<int> neighbors;
         
         for (int i = 0; i < 4; ++i)
@@ -160,14 +153,13 @@ void Map::recursiveBacktracker(int startX, int startY, std::mt19937& rng)
         }
         else
         {
-            // Выбираем случайного соседа
             std::uniform_int_distribution<int> dist(0, static_cast<int>(neighbors.size()) - 1);
             int dir = neighbors[dist(rng)];
             
             int nx = x + dx[dir];
             int ny = y + dy[dir];
             
-            // Убираем стену между текущей клеткой и соседом
+            // carve through the wall between cells
             int wallX = x + dx[dir] / 2;
             int wallY = y + dy[dir] / 2;
             
@@ -181,11 +173,11 @@ void Map::recursiveBacktracker(int startX, int startY, std::mt19937& rng)
 
 void Map::addRooms(std::mt19937& rng, int roomCount)
 {
-    std::uniform_int_distribution<int> sizeDistX(4, 4); // Фиксированный размер 4x4
+    std::uniform_int_distribution<int> sizeDistX(4, 4);  // fixed 4x4 rooms
     std::uniform_int_distribution<int> sizeDistY(4, 4);
     
     int attempts = 0;
-    int maxAttempts = roomCount * 10; // Ограничиваем попытки
+    int maxAttempts = roomCount * 10;
     
     while (m_rooms.size() < static_cast<size_t>(roomCount) && attempts < maxAttempts)
     {
@@ -194,18 +186,16 @@ void Map::addRooms(std::mt19937& rng, int roomCount)
         int roomWidth = sizeDistX(rng);
         int roomHeight = sizeDistY(rng);
         
-        // Случайная позиция для комнаты
         std::uniform_int_distribution<int> posDistX(3, m_width - roomWidth - 3);
         std::uniform_int_distribution<int> posDistY(3, m_height - roomHeight - 3);
         
         int roomX = posDistX(rng);
         int roomY = posDistY(rng);
         
-        // Проверяем пересечение с существующими комнатами
+        // check overlap with existing rooms (need 3 tile gap minimum)
         bool overlaps = false;
         for (const auto& existingRoom : m_rooms)
         {
-            // Добавляем отступ минимум 3 клетки между комнатами
             if (!(roomX + roomWidth + 3 < existingRoom.x ||
                   roomX > existingRoom.x + existingRoom.width + 3 ||
                   roomY + roomHeight + 3 < existingRoom.y ||
@@ -219,7 +209,6 @@ void Map::addRooms(std::mt19937& rng, int roomCount)
         if (overlaps)
             continue;
         
-        // Сохраняем информацию о комнате
         Room room;
         room.x = roomX;
         room.y = roomY;
@@ -227,7 +216,7 @@ void Map::addRooms(std::mt19937& rng, int roomCount)
         room.height = roomHeight;
         m_rooms.push_back(room);
         
-        // Создаем комнату (убираем стены)
+        // carve out the room
         for (int y = roomY; y < roomY + roomHeight; ++y)
         {
             for (int x = roomX; x < roomX + roomWidth; ++x)

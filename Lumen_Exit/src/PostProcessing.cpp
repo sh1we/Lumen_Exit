@@ -11,10 +11,8 @@ PostProcessing::PostProcessing(int screenWidth, int screenHeight)
 
 void PostProcessing::applyEffects(sf::RenderWindow& window, float walkBobbing, float batteryPercent)
 {
-    // 1. Vignette эффект (затемнение по краям)
     drawVignette(window, m_vignetteStrength);
     
-    // 2. Эффект низкого заряда батареи
     if (batteryPercent < 30.0f)
     {
         drawLowBatteryEffect(window, batteryPercent);
@@ -23,8 +21,7 @@ void PostProcessing::applyEffects(sf::RenderWindow& window, float walkBobbing, f
 
 void PostProcessing::drawVignette(sf::RenderWindow& window, float intensity)
 {
-    // Создаем градиент от центра к краям
-    const int segments = 4; // Количество сегментов градиента
+    const int segments = 4;
     
     float centerX = static_cast<float>(m_screenWidth) / 2.0f;
     float centerY = static_cast<float>(m_screenHeight) / 2.0f;
@@ -32,31 +29,31 @@ void PostProcessing::drawVignette(sf::RenderWindow& window, float intensity)
     
     sf::VertexArray vignette(sf::Quads);
     
-    // Верхняя часть
+    // gradient quads for each edge
     {
         float alpha = intensity * 200.0f;
         sf::Color edgeColor(0, 0, 0, static_cast<sf::Uint8>(alpha));
         sf::Color centerColor(0, 0, 0, 0);
         
-        // Верх
+        // top
         vignette.append(sf::Vertex(sf::Vector2f(0.0f, 0.0f), edgeColor));
         vignette.append(sf::Vertex(sf::Vector2f(static_cast<float>(m_screenWidth), 0.0f), edgeColor));
         vignette.append(sf::Vertex(sf::Vector2f(static_cast<float>(m_screenWidth), static_cast<float>(m_screenHeight) * 0.2f), centerColor));
         vignette.append(sf::Vertex(sf::Vector2f(0.0f, static_cast<float>(m_screenHeight) * 0.2f), centerColor));
         
-        // Низ
+        // bottom
         vignette.append(sf::Vertex(sf::Vector2f(0.0f, static_cast<float>(m_screenHeight) * 0.8f), centerColor));
         vignette.append(sf::Vertex(sf::Vector2f(static_cast<float>(m_screenWidth), static_cast<float>(m_screenHeight) * 0.8f), centerColor));
         vignette.append(sf::Vertex(sf::Vector2f(static_cast<float>(m_screenWidth), static_cast<float>(m_screenHeight)), edgeColor));
         vignette.append(sf::Vertex(sf::Vector2f(0.0f, static_cast<float>(m_screenHeight)), edgeColor));
         
-        // Лево
+        // left
         vignette.append(sf::Vertex(sf::Vector2f(0.0f, 0.0f), edgeColor));
         vignette.append(sf::Vertex(sf::Vector2f(static_cast<float>(m_screenWidth) * 0.2f, 0.0f), centerColor));
         vignette.append(sf::Vertex(sf::Vector2f(static_cast<float>(m_screenWidth) * 0.2f, static_cast<float>(m_screenHeight)), centerColor));
         vignette.append(sf::Vertex(sf::Vector2f(0.0f, static_cast<float>(m_screenHeight)), edgeColor));
         
-        // Право
+        // right
         vignette.append(sf::Vertex(sf::Vector2f(static_cast<float>(m_screenWidth) * 0.8f, 0.0f), centerColor));
         vignette.append(sf::Vertex(sf::Vector2f(static_cast<float>(m_screenWidth), 0.0f), edgeColor));
         vignette.append(sf::Vertex(sf::Vector2f(static_cast<float>(m_screenWidth), static_cast<float>(m_screenHeight)), edgeColor));
@@ -68,11 +65,11 @@ void PostProcessing::drawVignette(sf::RenderWindow& window, float intensity)
 
 void PostProcessing::drawLowBatteryEffect(sf::RenderWindow& window, float batteryPercent)
 {
-    // Красная виньетка при низком заряде
-    float intensity = (30.0f - batteryPercent) / 30.0f; // 0.0 при 30%, 1.0 при 0%
+    // red vignette when battery is dying
+    float intensity = (30.0f - batteryPercent) / 30.0f;
     intensity = std::max(0.0f, std::min(1.0f, intensity));
     
-    // Пульсация
+    // pulsing effect
     float pulse = 0.5f + 0.5f * std::sin(batteryPercent * 0.5f);
     intensity *= pulse;
     
@@ -82,25 +79,25 @@ void PostProcessing::drawLowBatteryEffect(sf::RenderWindow& window, float batter
     sf::Color edgeColor(255, 0, 0, alpha);
     sf::Color centerColor(255, 0, 0, 0);
     
-    // Верх
+    // top
     redVignette.append(sf::Vertex(sf::Vector2f(0.0f, 0.0f), edgeColor));
     redVignette.append(sf::Vertex(sf::Vector2f(static_cast<float>(m_screenWidth), 0.0f), edgeColor));
     redVignette.append(sf::Vertex(sf::Vector2f(static_cast<float>(m_screenWidth), static_cast<float>(m_screenHeight) * 0.15f), centerColor));
     redVignette.append(sf::Vertex(sf::Vector2f(0.0f, static_cast<float>(m_screenHeight) * 0.15f), centerColor));
     
-    // Низ
+    // bottom
     redVignette.append(sf::Vertex(sf::Vector2f(0.0f, static_cast<float>(m_screenHeight) * 0.85f), centerColor));
     redVignette.append(sf::Vertex(sf::Vector2f(static_cast<float>(m_screenWidth), static_cast<float>(m_screenHeight) * 0.85f), centerColor));
     redVignette.append(sf::Vertex(sf::Vector2f(static_cast<float>(m_screenWidth), static_cast<float>(m_screenHeight)), edgeColor));
     redVignette.append(sf::Vertex(sf::Vector2f(0.0f, static_cast<float>(m_screenHeight)), edgeColor));
     
-    // Лево
+    // left
     redVignette.append(sf::Vertex(sf::Vector2f(0.0f, 0.0f), edgeColor));
     redVignette.append(sf::Vertex(sf::Vector2f(static_cast<float>(m_screenWidth) * 0.15f, 0.0f), centerColor));
     redVignette.append(sf::Vertex(sf::Vector2f(static_cast<float>(m_screenWidth) * 0.15f, static_cast<float>(m_screenHeight)), centerColor));
     redVignette.append(sf::Vertex(sf::Vector2f(0.0f, static_cast<float>(m_screenHeight)), edgeColor));
     
-    // Право
+    // right
     redVignette.append(sf::Vertex(sf::Vector2f(static_cast<float>(m_screenWidth) * 0.85f, 0.0f), centerColor));
     redVignette.append(sf::Vertex(sf::Vector2f(static_cast<float>(m_screenWidth), 0.0f), edgeColor));
     redVignette.append(sf::Vertex(sf::Vector2f(static_cast<float>(m_screenWidth), static_cast<float>(m_screenHeight)), edgeColor));

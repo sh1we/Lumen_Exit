@@ -59,6 +59,7 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <AdditionalIncludeDirectories>$(SolutionDir)vendor\SFML-2.6.1\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <EnableEnhancedInstructionSet>AdvancedVectorExtensions</EnableEnhancedInstructionSet>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -77,6 +78,8 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <AdditionalIncludeDirectories>$(SolutionDir)vendor\SFML-2.6.1\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <EnableEnhancedInstructionSet>AdvancedVectorExtensions</EnableEnhancedInstructionSet>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -101,10 +104,13 @@
     <ClCompile Include="src\LightSystem.cpp" />
     <ClCompile Include="src\PostProcessing.cpp" />
     <ClCompile Include="src\Config.cpp" />
+    <ClCompile Include="src\GameManager.cpp" />
+    <ClCompile Include="src\ResourceManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Menu.h" />
     <ClInclude Include="src\Map.h" />
+    <ClInclude Include="src\MathUtils.h" />
     <ClInclude Include="src\Player.h" />
     <ClInclude Include="src\Raycaster.h" />
     <ClInclude Include="src\LoadingScreen.h" />
@@ -115,6 +121,9 @@
     <ClInclude Include="src\LightSystem.h" />
     <ClInclude Include="src\PostProcessing.h" />
     <ClInclude Include="src\Config.h" />
+    <ClInclude Include="src\GameManager.h" />
+    <ClInclude Include="src\ResourceManager.h" />
+    <ClInclude Include="src\UIHelper.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

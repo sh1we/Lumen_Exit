@@ -1,4 +1,5 @@
 #include "LoadingScreen.h"
+#include "ResourceManager.h"
 #include <iostream>
 
 LoadingScreen::LoadingScreen(float width, float height)
@@ -8,12 +9,9 @@ LoadingScreen::LoadingScreen(float width, float height)
     , m_width(width)
     , m_height(height)
 {
-    if (!m_font.loadFromFile("C:\\Windows\\Fonts\\cour.ttf"))
-    {
-        std::cerr << "Error loading font for loading screen!" << std::endl;
-    }
+    m_font = ResourceManager::getInstance().getFont();
     
-    // Текст загрузки в стиле терминала
+    // terminal-style loading text
     m_lines.push_back("> call Lumen_Exit()");
     m_lines.push_back("");
     m_lines.push_back("[ INITIALIZING VOID... ]");
@@ -31,17 +29,15 @@ void LoadingScreen::update(float deltaTime)
     
     m_timer += deltaTime;
     
-    // Показываем строки постепенно
     if (m_timer > 0.4f && m_currentLine < static_cast<int>(m_lines.size()))
     {
         m_currentLine++;
         m_timer = 0.0f;
     }
     
-    // Когда все строки показаны, ждем нажатия клавиши
+    // wait for keypress when done
     if (m_currentLine >= static_cast<int>(m_lines.size()))
     {
-        // Проверяем нажатие любой клавиши
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space) ||
             sf::Keyboard::isKeyPressed(sf::Keyboard::Enter) ||
             sf::Keyboard::isKeyPressed(sf::Keyboard::Escape))
@@ -53,7 +49,6 @@ void LoadingScreen::update(float deltaTime)
 
 void LoadingScreen::draw(sf::RenderWindow& window)
 {
-    // Отрисовка строк терминала
     float startY = m_height / 2.0f - 150.0f;
     
     for (int i = 0; i < m_currentLine && i < static_cast<int>(m_lines.size()); ++i)
@@ -62,12 +57,12 @@ void LoadingScreen::draw(sf::RenderWindow& window)
         text.setFont(m_font);
         text.setString(m_lines[i]);
         text.setCharacterSize(24);
-        text.setFillColor(sf::Color(0, 255, 0)); // Зеленый терминальный цвет
+        text.setFillColor(sf::Color(0, 255, 0));  // green terminal style
         text.setPosition(100.0f, startY + i * 35.0f);
         window.draw(text);
     }
     
-    // Мигающий курсор на последней строке
+    // blinking cursor
     if (m_currentLine > 0 && m_currentLine < static_cast<int>(m_lines.size()))
     {
         if (static_cast<int>(m_timer * 3.0f) % 2 == 0)
