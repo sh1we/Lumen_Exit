@@ -117,13 +117,19 @@ void Player::handleInput(float deltaTime)
     
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::A))
     {
-        m_angle -= m_rotSpeed * deltaTime;
-        updateDirection();
+        // strafe left (perpendicular to view direction)
+        float newX = m_x + getDirY() * speed * deltaTime;
+        float newY = m_y - getDirX() * speed * deltaTime;
+        m_x = newX;
+        m_y = newY;
     }
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::D))
     {
-        m_angle += m_rotSpeed * deltaTime;
-        updateDirection();
+        // strafe right
+        float newX = m_x - getDirY() * speed * deltaTime;
+        float newY = m_y + getDirX() * speed * deltaTime;
+        m_x = newX;
+        m_y = newY;
     }
 }
 
