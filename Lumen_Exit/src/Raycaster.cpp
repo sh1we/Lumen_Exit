@@ -21,6 +21,9 @@ Raycaster::Raycaster(int screenWidth, int screenHeight)
     // preallocate so we don't thrash memory every frame
     m_floorCeiling.resize(screenWidth * 8);
     m_wallSlices.resize(screenWidth * 4);
+    m_lightingBuffer.resize(screenWidth, 0.0f);
+    m_smoothedBuffer.resize(screenWidth, 0.0f);
+    m_rayDataBuffer.resize(screenWidth);
 }
 
 Raycaster::RayHit Raycaster::castRay(float rayAngle, const Player& player, const Map& map)
@@ -118,6 +121,10 @@ void Raycaster::render(sf::RenderWindow& window, const Player& player, const Map
     m_floorCeiling.clear();
     m_wallSlices.clear();
     
+    float fogDistance = lightSystem.isFlashlightEnabled() && lightSystem.getFlashlightBattery() > 0.0f ? 6.0f : 2.5f;
+    float ambientComponent = 0.08f;  // 8% base visibility
+    
+    // PASS 1: calculate all ray data and lighting values
     for (int x = 0; x < m_screenWidth; ++x)
     {
         float cameraX = 2.0f * x / static_cast<float>(m_screenWidth) - 1.0f;
@@ -154,7 +161,7 @@ void Raycaster::render(sf::RenderWindow& window, const Player& player, const Map
         {
             case LightingQuality::LOW:
                 samples = 2;
-                useInterpolation = (x % 2 == 1);  // skip every other ray
+                useInterpolation = (x % 2 == 1);
                 break;
             case LightingQuality::MEDIUM:
                 samples = 3;
@@ -205,11 +212,7 @@ void Raycaster::render(sf::RenderWindow& window, const Player& player, const Map
             m_lastLighting = avgLighting;
         }
         
-        // fog only affects ambient, not light sources (so you can't cheat with monitor brightness)
-        float fogDistance = lightSystem.isFlashlightEnabled() && lightSystem.getFlashlightBattery() > 0.0f ? 6.0f : 0.8f;
-        
-        float ambientComponent = 0.03f;  // 3% base visibility
-        
+        // calculate fog
         float distanceFog = 1.0f;
         if (correctedDistance > fogDistance)
         {
@@ -221,22 +224,69 @@ void Raycaster::render(sf::RenderWindow& window, const Player& player, const Map
             distanceFog = 1.0f - (fogRatio * fogRatio * fogRatio * fogRatio);
         }
         
+        // calculate final brightness WITH side shading applied
         float lightSourceComponent = std::max(0.0f, avgLighting - ambientComponent);
         float foggedAmbient = ambientComponent * distanceFog;
-        
         float finalLighting = lightSourceComponent + foggedAmbient;
-        float baseBrightness = finalLighting;
         
-        // horizontal walls slightly darker for depth
-        float wallBrightness = baseBrightness * (hit.hitVertical ? 1.0f : 0.8f);
+        // apply side shading BEFORE storing - so smoothing blends the edges
+        float sideFactor = hit.hitVertical ? 1.0f : 0.94f;
+        float wallBrightness = finalLighting * sideFactor;
+        
+        // store raw data for pass 2
+        m_rayDataBuffer[x].correctedDistance = correctedDistance;
+        m_rayDataBuffer[x].drawStart = drawStart;
+        m_rayDataBuffer[x].drawEnd = drawEnd;
+        m_rayDataBuffer[x].hitVertical = hit.hitVertical;
+        m_rayDataBuffer[x].rawLighting = avgLighting;
+        m_rayDataBuffer[x].distanceFog = distanceFog;
+        m_lightingBuffer[x] = wallBrightness;  // store with side shading already applied
+    }
+    
+    // smooth the lighting buffer - 5-tap weighted filter
+    // blends the harsh edge between vertical/horizontal walls
+    for (int x = 0; x < m_screenWidth; ++x)
+    {
+        float sum = m_lightingBuffer[x] * 2.0f;  // center has more weight
+        float weight = 2.0f;
+        
+        if (x > 0)
+        {
+            sum += m_lightingBuffer[x - 1];
+            weight += 1.0f;
+        }
+        if (x > 1)
+        {
+            sum += m_lightingBuffer[x - 2] * 0.5f;
+            weight += 0.5f;
+        }
+        if (x < m_screenWidth - 1)
+        {
+            sum += m_lightingBuffer[x + 1];
+            weight += 1.0f;
+        }
+        if (x < m_screenWidth - 2)
+        {
+            sum += m_lightingBuffer[x + 2] * 0.5f;
+            weight += 0.5f;
+        }
+        
+        m_smoothedBuffer[x] = sum / weight;
+    }
+    
+    // PASS 2: render using smoothed lighting
+    for (int x = 0; x < m_screenWidth; ++x)
+    {
+        const RayData& data = m_rayDataBuffer[x];
+        float wallBrightness = m_smoothedBuffer[x];
         
         int colorValue = static_cast<int>(wallBrightness * 255.0f);
         colorValue = std::max(0, std::min(255, colorValue));
         sf::Color wallColor(colorValue, colorValue, colorValue);
         
         float xPos = static_cast<float>(x);
-        float yStart = static_cast<float>(drawStart);
-        float yEnd = static_cast<float>(drawEnd);
+        float yStart = static_cast<float>(data.drawStart);
+        float yEnd = static_cast<float>(data.drawEnd);
         
         m_wallSlices.append(sf::Vertex(sf::Vector2f(xPos, yStart), wallColor));
         m_wallSlices.append(sf::Vertex(sf::Vector2f(xPos + 1.0f, yStart), wallColor));
@@ -244,10 +294,10 @@ void Raycaster::render(sf::RenderWindow& window, const Player& player, const Map
         m_wallSlices.append(sf::Vertex(sf::Vector2f(xPos, yEnd), wallColor));
         
         // ceiling
-        if (drawStart > 0)
+        if (data.drawStart > 0)
         {
-            float lightSourceCeiling = std::max(0.0f, avgLighting - ambientComponent);
-            float foggedAmbientCeiling = ambientComponent * distanceFog;
+            float lightSourceCeiling = std::max(0.0f, data.rawLighting - ambientComponent);
+            float foggedAmbientCeiling = ambientComponent * data.distanceFog;
             float finalCeilingLight = lightSourceCeiling + foggedAmbientCeiling;
             
             int ceilingValue = static_cast<int>(finalCeilingLight * 20.0f);
@@ -260,10 +310,10 @@ void Raycaster::render(sf::RenderWindow& window, const Player& player, const Map
         }
         
         // floor (slightly brighter than ceiling)
-        if (drawEnd < m_screenHeight)
+        if (data.drawEnd < m_screenHeight)
         {
-            float lightSourceFloor = std::max(0.0f, avgLighting - ambientComponent);
-            float foggedAmbientFloor = ambientComponent * distanceFog;
+            float lightSourceFloor = std::max(0.0f, data.rawLighting - ambientComponent);
+            float foggedAmbientFloor = ambientComponent * data.distanceFog;
             float finalFloorLight = lightSourceFloor + foggedAmbientFloor;
             
             int floorValue = static_cast<int>(finalFloorLight * 30.0f);
