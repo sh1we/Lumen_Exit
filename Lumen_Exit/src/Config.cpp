@@ -16,6 +16,7 @@ bool GameConfig::saveToFile(const std::string& filename)
     file << "fullscreen=" << (fullscreen ? 1 : 0) << "\n";
     file << "lightingQuality=" << static_cast<int>(lightingQuality) << "\n";
     file << "mouseSensitivity=" << mouseSensitivity << "\n";
+    file << "customSeed=" << customSeed << "\n";
     file << "bestTime=" << bestTime << "\n";
     
     file.close();
@@ -62,6 +63,8 @@ bool GameConfig::loadFromFile(const std::string& filename)
         }
         else if (key == "mouseSensitivity")
             mouseSensitivity = std::stof(value);
+        else if (key == "customSeed")
+            customSeed = static_cast<unsigned int>(std::stoul(value));
         else if (key == "bestTime")
             bestTime = std::stof(value);
     }

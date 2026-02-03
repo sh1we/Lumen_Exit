@@ -13,25 +13,26 @@ enum class LightingQuality
 
 struct GameConfig
 {
-    // Видео настройки
+    // video
     int screenWidth = 1280;
     int screenHeight = 720;
     int targetFPS = 60;
     bool fullscreen = false;
     
-    // Графика
+    // graphics
     LightingQuality lightingQuality = LightingQuality::HIGH;
     
-    // Управление
+    // controls
     float mouseSensitivity = 0.001f;
     
-    // Статистика
-    float bestTime = 999999.0f; // Лучшее время (в секундах)
+    // gameplay
+    unsigned int customSeed = 0;  // 0 = random seed
     
-    // Сохранение/загрузка
+    // stats
+    float bestTime = 999999.0f;
+    
     bool saveToFile(const std::string& filename);
     bool loadFromFile(const std::string& filename);
     
-    // Обновление лучшего времени
     void updateBestTime(float time);
 };

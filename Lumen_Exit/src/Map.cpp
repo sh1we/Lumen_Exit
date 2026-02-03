@@ -6,6 +6,7 @@
 Map::Map(int width, int height, unsigned int seed)
     : m_width(width), m_height(height)
     , m_spawnX(1), m_spawnY(1)
+    , m_seed(seed)
 {
     // maze algo needs odd dimensions
     if (m_width % 2 == 0) m_width++;
@@ -13,13 +14,13 @@ Map::Map(int width, int height, unsigned int seed)
     
     m_tiles.resize(m_width * m_height, 1);  // all walls
     
-    if (seed == 0)
+    if (m_seed == 0)
     {
-        seed = static_cast<unsigned int>(std::time(nullptr));
+        m_seed = static_cast<unsigned int>(std::time(nullptr));
     }
     
-    std::cout << "Generating maze with seed: " << seed << std::endl;
-    generateMaze(seed);
+    std::cout << "Generating maze with seed: " << m_seed << std::endl;
+    generateMaze(m_seed);
 }
 
 int Map::getTile(int x, int y) const

@@ -31,7 +31,7 @@ void GameManager::createNewGame()
     
     std::cout << "Creating new game..." << std::endl;
     
-    m_map = new Map(51, 51);
+    m_map = new Map(51, 51, m_config.customSeed);
     
     float spawnX, spawnY;
     m_map->getSpawnPosition(spawnX, spawnY);

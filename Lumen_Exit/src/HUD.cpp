@@ -13,7 +13,7 @@ HUD::HUD(int screenWidth, int screenHeight)
     m_font = ResourceManager::getInstance().getFont();
 }
 
-void HUD::draw(sf::RenderWindow& window, const Player& player, float gameTime, const LightSystem& lightSystem)
+void HUD::draw(sf::RenderWindow& window, const Player& player, float gameTime, const LightSystem& lightSystem, unsigned int seed)
 {
     sf::RectangleShape hudBackground(sf::Vector2f(280.0f, 140.0f));
     hudBackground.setPosition(10.0f, static_cast<float>(m_screenHeight) - 150.0f);
@@ -182,4 +182,16 @@ void HUD::draw(sf::RenderWindow& window, const Player& player, float gameTime, c
     hintText.setFillColor(sf::Color(150, 150, 150));
     hintText.setPosition(static_cast<float>(m_screenWidth) - 280.0f, static_cast<float>(m_screenHeight) - 25.0f);
     window.draw(hintText);
+    
+    // seed display (top right)
+    if (seed != 0)
+    {
+        sf::Text seedText;
+        seedText.setFont(m_font);
+        seedText.setString("Seed: " + std::to_string(seed));
+        seedText.setCharacterSize(14);
+        seedText.setFillColor(sf::Color(100, 100, 100));
+        seedText.setPosition(static_cast<float>(m_screenWidth) - 200.0f, 10.0f);
+        window.draw(seedText);
+    }
 }

@@ -6,7 +6,7 @@ struct Room
 {
     int x, y;
     int width, height;
-    bool isExit = false; // Является ли эта комната выходом
+    bool isExit = false;
     int centerX() const { return x + width / 2; }
     int centerY() const { return y + height / 2; }
 };
@@ -26,6 +26,8 @@ public:
     void getSpawnPosition(float& outX, float& outY) const;
     const std::vector<Room>& getRooms() const { return m_rooms; }
     
+    unsigned int getSeed() const { return m_seed; }
+    
 private:
     void generateMaze(unsigned int seed);
     void recursiveBacktracker(int x, int y, std::mt19937& rng);
@@ -34,9 +36,10 @@ private:
     
     int m_width;
     int m_height;
-    std::vector<int> m_tiles; // 0 = пустота, 1 = стена
+    std::vector<int> m_tiles;
     
-    std::vector<Room> m_rooms; // Список комнат (safe зоны)
+    std::vector<Room> m_rooms;
     int m_spawnX;
     int m_spawnY;
+    unsigned int m_seed;
 };

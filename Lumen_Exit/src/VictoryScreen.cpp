@@ -4,7 +4,7 @@
 #include <sstream>
 #include <iomanip>
 
-VictoryScreen::VictoryScreen(float width, float height, float completionTime, float bestTime)
+VictoryScreen::VictoryScreen(float width, float height, float completionTime, float bestTime, unsigned int seed)
     : m_timer(0.0f)
     , m_currentLine(0)
     , m_finished(false)
@@ -45,6 +45,7 @@ VictoryScreen::VictoryScreen(float width, float height, float completionTime, fl
     m_lines.push_back("=== STATISTICS ===");
     m_lines.push_back("Time: " + timeStr.str());
     m_lines.push_back("Best: " + bestTimeStr);
+    m_lines.push_back("Seed: " + std::to_string(seed));
     if (isNewRecord && bestTime < 999999.0f)
     {
         m_lines.push_back("Status: NEW RECORD!");

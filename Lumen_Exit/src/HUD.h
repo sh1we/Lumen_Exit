@@ -9,7 +9,7 @@ class HUD
 public:
     HUD(int screenWidth, int screenHeight);
     
-    void draw(sf::RenderWindow& window, const Player& player, float gameTime, const LightSystem& lightSystem);
+    void draw(sf::RenderWindow& window, const Player& player, float gameTime, const LightSystem& lightSystem, unsigned int seed = 0);
     
 private:
     sf::Font m_font;

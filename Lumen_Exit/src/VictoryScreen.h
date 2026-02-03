@@ -6,7 +6,7 @@
 class VictoryScreen
 {
 public:
-    VictoryScreen(float width, float height, float completionTime, float bestTime);
+    VictoryScreen(float width, float height, float completionTime, float bestTime, unsigned int seed = 0);
     
     void update(float deltaTime);
     void draw(sf::RenderWindow& window);

@@ -78,18 +78,23 @@ int main()
 		{
 			if (event.type == sf::Event::Closed)
 				window.close();
+			
+			// text input for seed
+			if (event.type == sf::Event::TextEntered && gameState == GameState::SETTINGS)
+			{
+				settingsMenu.handleTextInput(event.text.unicode);
+			}
 
 			if (event.type == sf::Event::KeyPressed)
 			{
 				if (gameState == GameState::LOADING)
 				{
-					// Загрузочный экран обрабатывает нажатия сам
 				}
 				else if (gameState == GameState::SETTINGS)
 				{
 					settingsMenu.handleInput(event.key.code);
 					
-					if (event.key.code == sf::Keyboard::Escape && !escPressed)
+					if (event.key.code == sf::Keyboard::Escape && !escPressed && !settingsMenu.isEditingSeed())
 					{
 						gameState = previousState;
 						escPressed = true;
@@ -367,6 +372,7 @@ int main()
 					std::cout << "\n==================================" << std::endl;
 					std::cout << "    EXIT FOUND! YOU ESCAPED!" << std::endl;
 					std::cout << "    Time: " << static_cast<int>(gameTime) << " seconds" << std::endl;
+					std::cout << "    Seed: " << gameManager.getMap()->getSeed() << std::endl;
 					std::cout << "==================================" << std::endl;
 					
 					config.updateBestTime(gameTime);
@@ -376,7 +382,8 @@ int main()
 						static_cast<float>(config.screenWidth), 
 						static_cast<float>(config.screenHeight),
 						gameTime,
-						config.bestTime
+						config.bestTime,
+						gameManager.getMap()->getSeed()
 					);
 					gameState = GameState::VICTORY;
 					window.setMouseCursorVisible(true);
@@ -389,7 +396,7 @@ int main()
 				gameManager.getRaycaster()->render(window, *gameManager.getPlayer(), *gameManager.getMap(), *gameManager.getLightSystem());
 				
 				gameManager.getPostProcessing()->applyEffects(window, 0.0f, gameManager.getLightSystem()->getFlashlightBattery());
-				gameManager.getHUD()->draw(window, *gameManager.getPlayer(), gameTime, *gameManager.getLightSystem());
+				gameManager.getHUD()->draw(window, *gameManager.getPlayer(), gameTime, *gameManager.getLightSystem(), gameManager.getMap()->getSeed());
 				
 				if (showMinimap)
 				{
