@@ -1,5 +1,5 @@
 #include "LoadingScreen.h"
-#include "ResourceManager.h"
+#include "../utils/ResourceManager.h"
 #include <iostream>
 
 LoadingScreen::LoadingScreen(float width, float height)

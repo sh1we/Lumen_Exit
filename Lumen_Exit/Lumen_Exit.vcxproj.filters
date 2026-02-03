@@ -1,74 +1,117 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="Source Files">
+    <Filter Include="core">
       <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
-      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
     </Filter>
-    <Filter Include="Header Files">
+    <Filter Include="rendering">
       <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
-      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="world">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ui">
+      <UniqueIdentifier>{72A3B8F2-D9C1-4e5f-9A8B-12CD34EF5678}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="utils">
+      <UniqueIdentifier>{83B4C9D3-E0F2-5f60-AB9C-23DE45F06789}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\main.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="src\core\main.cpp">
+      <Filter>core</Filter>
     </ClCompile>
-    <ClCompile Include="src\Menu.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="src\core\Config.cpp">
+      <Filter>core</Filter>
     </ClCompile>
-    <ClCompile Include="src\Map.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="src\core\GameManager.cpp">
+      <Filter>core</Filter>
     </ClCompile>
-    <ClCompile Include="src\Player.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="src\rendering\Raycaster.cpp">
+      <Filter>rendering</Filter>
     </ClCompile>
-    <ClCompile Include="src\Raycaster.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="src\rendering\LightSystem.cpp">
+      <Filter>rendering</Filter>
     </ClCompile>
-    <ClCompile Include="src\LoadingScreen.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="src\rendering\PostProcessing.cpp">
+      <Filter>rendering</Filter>
     </ClCompile>
-    <ClCompile Include="src\Minimap.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="src\world\Map.cpp">
+      <Filter>world</Filter>
     </ClCompile>
-    <ClCompile Include="src\VictoryScreen.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="src\world\Player.cpp">
+      <Filter>world</Filter>
     </ClCompile>
-    <ClCompile Include="src\HUD.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="src\ui\Menu.cpp">
+      <Filter>ui</Filter>
     </ClCompile>
-    <ClCompile Include="src\SettingsMenu.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="src\ui\SettingsMenu.cpp">
+      <Filter>ui</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ui\HUD.cpp">
+      <Filter>ui</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ui\Minimap.cpp">
+      <Filter>ui</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ui\LoadingScreen.cpp">
+      <Filter>ui</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ui\VictoryScreen.cpp">
+      <Filter>ui</Filter>
+    </ClCompile>
+    <ClCompile Include="src\utils\ResourceManager.cpp">
+      <Filter>utils</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\Menu.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="src\core\Config.h">
+      <Filter>core</Filter>
     </ClInclude>
-    <ClInclude Include="src\Map.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="src\core\GameManager.h">
+      <Filter>core</Filter>
     </ClInclude>
-    <ClInclude Include="src\Player.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="src\rendering\Raycaster.h">
+      <Filter>rendering</Filter>
     </ClInclude>
-    <ClInclude Include="src\Raycaster.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="src\rendering\LightSystem.h">
+      <Filter>rendering</Filter>
     </ClInclude>
-    <ClInclude Include="src\LoadingScreen.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="src\rendering\PostProcessing.h">
+      <Filter>rendering</Filter>
     </ClInclude>
-    <ClInclude Include="src\Minimap.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="src\world\Map.h">
+      <Filter>world</Filter>
     </ClInclude>
-    <ClInclude Include="src\VictoryScreen.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="src\world\Player.h">
+      <Filter>world</Filter>
     </ClInclude>
-    <ClInclude Include="src\HUD.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="src\ui\Menu.h">
+      <Filter>ui</Filter>
     </ClInclude>
-    <ClInclude Include="src\SettingsMenu.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="src\ui\SettingsMenu.h">
+      <Filter>ui</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ui\HUD.h">
+      <Filter>ui</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ui\Minimap.h">
+      <Filter>ui</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ui\LoadingScreen.h">
+      <Filter>ui</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ui\VictoryScreen.h">
+      <Filter>ui</Filter>
+    </ClInclude>
+    <ClInclude Include="src\utils\MathUtils.h">
+      <Filter>utils</Filter>
+    </ClInclude>
+    <ClInclude Include="src\utils\ResourceManager.h">
+      <Filter>utils</Filter>
+    </ClInclude>
+    <ClInclude Include="src\utils\UIHelper.h">
+      <Filter>utils</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

@@ -91,39 +91,39 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="src\main.cpp" />
-    <ClCompile Include="src\Menu.cpp" />
-    <ClCompile Include="src\Map.cpp" />
-    <ClCompile Include="src\Player.cpp" />
-    <ClCompile Include="src\Raycaster.cpp" />
-    <ClCompile Include="src\LoadingScreen.cpp" />
-    <ClCompile Include="src\Minimap.cpp" />
-    <ClCompile Include="src\VictoryScreen.cpp" />
-    <ClCompile Include="src\HUD.cpp" />
-    <ClCompile Include="src\SettingsMenu.cpp" />
-    <ClCompile Include="src\LightSystem.cpp" />
-    <ClCompile Include="src\PostProcessing.cpp" />
-    <ClCompile Include="src\Config.cpp" />
-    <ClCompile Include="src\GameManager.cpp" />
-    <ClCompile Include="src\ResourceManager.cpp" />
+    <ClCompile Include="src\core\main.cpp" />
+    <ClCompile Include="src\core\Config.cpp" />
+    <ClCompile Include="src\core\GameManager.cpp" />
+    <ClCompile Include="src\rendering\Raycaster.cpp" />
+    <ClCompile Include="src\rendering\LightSystem.cpp" />
+    <ClCompile Include="src\rendering\PostProcessing.cpp" />
+    <ClCompile Include="src\world\Map.cpp" />
+    <ClCompile Include="src\world\Player.cpp" />
+    <ClCompile Include="src\ui\Menu.cpp" />
+    <ClCompile Include="src\ui\SettingsMenu.cpp" />
+    <ClCompile Include="src\ui\HUD.cpp" />
+    <ClCompile Include="src\ui\Minimap.cpp" />
+    <ClCompile Include="src\ui\LoadingScreen.cpp" />
+    <ClCompile Include="src\ui\VictoryScreen.cpp" />
+    <ClCompile Include="src\utils\ResourceManager.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\Menu.h" />
-    <ClInclude Include="src\Map.h" />
-    <ClInclude Include="src\MathUtils.h" />
-    <ClInclude Include="src\Player.h" />
-    <ClInclude Include="src\Raycaster.h" />
-    <ClInclude Include="src\LoadingScreen.h" />
-    <ClInclude Include="src\Minimap.h" />
-    <ClInclude Include="src\VictoryScreen.h" />
-    <ClInclude Include="src\HUD.h" />
-    <ClInclude Include="src\SettingsMenu.h" />
-    <ClInclude Include="src\LightSystem.h" />
-    <ClInclude Include="src\PostProcessing.h" />
-    <ClInclude Include="src\Config.h" />
-    <ClInclude Include="src\GameManager.h" />
-    <ClInclude Include="src\ResourceManager.h" />
-    <ClInclude Include="src\UIHelper.h" />
+    <ClInclude Include="src\core\Config.h" />
+    <ClInclude Include="src\core\GameManager.h" />
+    <ClInclude Include="src\rendering\Raycaster.h" />
+    <ClInclude Include="src\rendering\LightSystem.h" />
+    <ClInclude Include="src\rendering\PostProcessing.h" />
+    <ClInclude Include="src\world\Map.h" />
+    <ClInclude Include="src\world\Player.h" />
+    <ClInclude Include="src\ui\Menu.h" />
+    <ClInclude Include="src\ui\SettingsMenu.h" />
+    <ClInclude Include="src\ui\HUD.h" />
+    <ClInclude Include="src\ui\Minimap.h" />
+    <ClInclude Include="src\ui\LoadingScreen.h" />
+    <ClInclude Include="src\ui\VictoryScreen.h" />
+    <ClInclude Include="src\utils\MathUtils.h" />
+    <ClInclude Include="src\utils\ResourceManager.h" />
+    <ClInclude Include="src\utils\UIHelper.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

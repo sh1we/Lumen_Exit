@@ -1,6 +1,6 @@
 #pragma once
 #include <SFML/Graphics.hpp>
-#include "Config.h"
+#include "../core/Config.h"
 
 class SettingsMenu
 {

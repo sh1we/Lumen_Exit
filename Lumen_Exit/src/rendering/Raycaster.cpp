@@ -1,9 +1,9 @@
 #include "Raycaster.h"
-#include "Player.h"
-#include "Map.h"
 #include "LightSystem.h"
-#include "Config.h"
-#include "MathUtils.h"
+#include "../world/Player.h"
+#include "../world/Map.h"
+#include "../core/Config.h"
+#include "../utils/MathUtils.h"
 #include <cmath>
 #include <algorithm>
 
@@ -116,6 +116,7 @@ Raycaster::RayHit Raycaster::castRay(float rayAngle, const Player& player, const
     return hit;
 }
 
+
 void Raycaster::render(sf::RenderWindow& window, const Player& player, const Map& map, const LightSystem& lightSystem)
 {
     m_floorCeiling.clear();
@@ -135,7 +136,6 @@ void Raycaster::render(sf::RenderWindow& window, const Player& player, const Map
         // fish-eye fix
         float angleDiff = rayAngle - player.getAngle();
         
-        // keep angle in [-PI, PI] or things get weird
         while (angleDiff > PI) angleDiff -= 2.0f * PI;
         while (angleDiff < -PI) angleDiff += 2.0f * PI;
         
@@ -146,14 +146,12 @@ void Raycaster::render(sf::RenderWindow& window, const Player& player, const Map
         
         int wallHeight = static_cast<int>(m_screenHeight / correctedDistance);
         
-        // sanity check
         if (wallHeight > m_screenHeight * 10)
             wallHeight = m_screenHeight * 10;
         
         int drawStart = (m_screenHeight - wallHeight) / 2;
         int drawEnd = drawStart + wallHeight;
         
-        // adaptive sampling - more samples up close where it matters
         int samples;
         bool useInterpolation = false;
         
@@ -180,7 +178,6 @@ void Raycaster::render(sf::RenderWindow& window, const Player& player, const Map
         }
         else
         {
-            // volumetric lighting - sample along the ray
             float totalLighting = 0.0f;
             
             float rayDirX = std::cos(rayAngle);
@@ -196,7 +193,6 @@ void Raycaster::render(sf::RenderWindow& window, const Player& player, const Map
                 
                 float lighting = lightSystem.calculateLighting(sampleX, sampleY, player, map);
                 
-                // fog falloff
                 float fogFactor = 1.0f - (t / maxSampleDist);
                 fogFactor = fogFactor * fogFactor;
                 
@@ -205,14 +201,12 @@ void Raycaster::render(sf::RenderWindow& window, const Player& player, const Map
             
             avgLighting = totalLighting / static_cast<float>(samples);
             
-            // blend with wall hit point lighting
             float wallLighting = lightSystem.calculateLighting(hit.hitX, hit.hitY, player, map);
             avgLighting = avgLighting * 0.6f + wallLighting * 0.4f;
             
             m_lastLighting = avgLighting;
         }
         
-        // calculate fog
         float distanceFog = 1.0f;
         if (correctedDistance > fogDistance)
         {
@@ -224,30 +218,26 @@ void Raycaster::render(sf::RenderWindow& window, const Player& player, const Map
             distanceFog = 1.0f - (fogRatio * fogRatio * fogRatio * fogRatio);
         }
         
-        // calculate final brightness WITH side shading applied
         float lightSourceComponent = std::max(0.0f, avgLighting - ambientComponent);
         float foggedAmbient = ambientComponent * distanceFog;
         float finalLighting = lightSourceComponent + foggedAmbient;
         
-        // apply side shading BEFORE storing - so smoothing blends the edges
         float sideFactor = hit.hitVertical ? 1.0f : 0.94f;
         float wallBrightness = finalLighting * sideFactor;
         
-        // store raw data for pass 2
         m_rayDataBuffer[x].correctedDistance = correctedDistance;
         m_rayDataBuffer[x].drawStart = drawStart;
         m_rayDataBuffer[x].drawEnd = drawEnd;
         m_rayDataBuffer[x].hitVertical = hit.hitVertical;
         m_rayDataBuffer[x].rawLighting = avgLighting;
         m_rayDataBuffer[x].distanceFog = distanceFog;
-        m_lightingBuffer[x] = wallBrightness;  // store with side shading already applied
+        m_lightingBuffer[x] = wallBrightness;
     }
     
     // smooth the lighting buffer - 5-tap weighted filter
-    // blends the harsh edge between vertical/horizontal walls
     for (int x = 0; x < m_screenWidth; ++x)
     {
-        float sum = m_lightingBuffer[x] * 2.0f;  // center has more weight
+        float sum = m_lightingBuffer[x] * 2.0f;
         float weight = 2.0f;
         
         if (x > 0)
@@ -293,7 +283,6 @@ void Raycaster::render(sf::RenderWindow& window, const Player& player, const Map
         m_wallSlices.append(sf::Vertex(sf::Vector2f(xPos + 1.0f, yEnd), wallColor));
         m_wallSlices.append(sf::Vertex(sf::Vector2f(xPos, yEnd), wallColor));
         
-        // ceiling
         if (data.drawStart > 0)
         {
             float lightSourceCeiling = std::max(0.0f, data.rawLighting - ambientComponent);
@@ -309,7 +298,6 @@ void Raycaster::render(sf::RenderWindow& window, const Player& player, const Map
             m_floorCeiling.append(sf::Vertex(sf::Vector2f(xPos, yStart), ceilingColor));
         }
         
-        // floor (slightly brighter than ceiling)
         if (data.drawEnd < m_screenHeight)
         {
             float lightSourceFloor = std::max(0.0f, data.rawLighting - ambientComponent);
@@ -326,7 +314,6 @@ void Raycaster::render(sf::RenderWindow& window, const Player& player, const Map
         }
     }
     
-    // floor/ceiling first, walls on top
     window.draw(m_floorCeiling);
     window.draw(m_wallSlices);
 }

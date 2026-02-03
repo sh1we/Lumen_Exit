@@ -1,19 +1,19 @@
 #include <SFML/Graphics.hpp>
 #include <iostream>
-#include "Menu.h"
-#include "Map.h"
-#include "Player.h"
-#include "Raycaster.h"
-#include "LoadingScreen.h"
-#include "Minimap.h"
-#include "VictoryScreen.h"
-#include "HUD.h"
-#include "SettingsMenu.h"
-#include "LightSystem.h"
-#include "PostProcessing.h"
 #include "Config.h"
 #include "GameManager.h"
-#include "ResourceManager.h"
+#include "../ui/Menu.h"
+#include "../ui/LoadingScreen.h"
+#include "../ui/Minimap.h"
+#include "../ui/VictoryScreen.h"
+#include "../ui/HUD.h"
+#include "../ui/SettingsMenu.h"
+#include "../world/Map.h"
+#include "../world/Player.h"
+#include "../rendering/Raycaster.h"
+#include "../rendering/LightSystem.h"
+#include "../rendering/PostProcessing.h"
+#include "../utils/ResourceManager.h"
 
 enum class GameState
 {
@@ -63,7 +63,7 @@ int main()
 	VictoryScreen* victoryScreen = nullptr;
 	
 	bool showMinimap = false;
-	bool tabPressed = false;  // debounce
+	bool tabPressed = false;
 	bool escPressed = false;
 	bool fPressed = false;
 	
@@ -123,7 +123,6 @@ int main()
 						
 						if (menu->isInGameMode())
 						{
-							// in-game menu
 							if (selected == 0) // CONTINUE
 							{
 								gameState = GameState::PLAYING;
@@ -133,7 +132,6 @@ int main()
 							}
 							else if (selected == 1) // NEW GAME
 							{
-								// ОПТИМИЗАЦИЯ: Используем GameManager
 								gameManager.createNewGame();
 								
 								gameTime = 0.0f;
@@ -154,7 +152,6 @@ int main()
 						}
 						else
 						{
-							// main menu
 							if (selected == 0) // START GAME
 							{
 								if (!gameManager.isInitialized())
@@ -233,7 +230,6 @@ int main()
 							}
 							else if (selected == 1) // NEW GAME
 							{
-								// ОПТИМИЗАЦИЯ: Используем GameManager
 								gameManager.createNewGame();
 								
 								gameTime = 0.0f;
@@ -420,7 +416,6 @@ int main()
 						gameManager.getPlayer()->handleMouseMovement(deltaX, config.mouseSensitivity);
 					}
 					
-					// Возвращаем курсор в центр окна для непрерывного вращения
 					sf::Vector2i center(config.screenWidth / 2, config.screenHeight / 2);
 					sf::Mouse::setPosition(center, window);
 					lastMousePos = center;

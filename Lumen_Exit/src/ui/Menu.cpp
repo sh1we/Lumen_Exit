@@ -1,5 +1,5 @@
 #include "Menu.h"
-#include "ResourceManager.h"
+#include "../utils/ResourceManager.h"
 #include <iostream>
 
 Menu::Menu(float width, float height)

@@ -1,5 +1,5 @@
 #include "SettingsMenu.h"
-#include "ResourceManager.h"
+#include "../utils/ResourceManager.h"
 #include <iostream>
 #include <sstream>
 #include <iomanip>

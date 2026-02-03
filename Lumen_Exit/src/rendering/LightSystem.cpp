@@ -1,16 +1,17 @@
 #include "LightSystem.h"
-#include "Player.h"
-#include "Map.h"
-#include "MathUtils.h"
+#include "../world/Player.h"
+#include "../world/Map.h"
+#include "../utils/MathUtils.h"
 #include <algorithm>
+#include <cmath>
 
 LightSystem::LightSystem()
     : m_flashlightEnabled(true)
     , m_flashlightBattery(100.0f)
     , m_flashlightRadius(12.0f)
-    , m_flashlightAngle(1.2f)           // ~70 deg cone
-    , m_flashlightDrainRate(3.0f)       // 33 sec runtime
-    , m_ambientLight(0.03f)             // barely visible without flashlight
+    , m_flashlightAngle(1.2f)
+    , m_flashlightDrainRate(3.0f)
+    , m_ambientLight(0.03f)
 {
 }
 
@@ -27,7 +28,6 @@ void LightSystem::addRoomLights(const Map& map)
         
         float radius = std::max(room.width, room.height) * 1.5f;
         
-        // gold for exit, warm white for safe rooms
         sf::Color lightColor = room.isExit ? sf::Color(255, 215, 100) : sf::Color(255, 240, 200);
         
         m_staticLights.emplace_back(centerX, centerY, radius, 2.0f, lightColor, true);
@@ -43,7 +43,6 @@ void LightSystem::updateFlashlight(float deltaTime, bool isUsing, bool inSafeRoo
 {
     if (inSafeRoom && m_flashlightBattery < 100.0f)
     {
-        // fast charge in safe rooms
         m_flashlightBattery += 20.0f * deltaTime;
         
         if (m_flashlightBattery > 100.0f)
@@ -91,7 +90,6 @@ float LightSystem::calculateLighting(float x, float y, const Player& player, con
 {
     float totalLight = m_ambientLight;
     
-    // static lights (rooms)
     for (const auto& light : m_staticLights)
     {
         float dx = x - light.x;
@@ -115,7 +113,6 @@ float LightSystem::calculateLighting(float x, float y, const Player& player, con
         }
     }
     
-    // flashlight
     if (m_flashlightEnabled && m_flashlightBattery > 0.0f)
     {
         float dx = x - player.getX();
@@ -132,23 +129,19 @@ float LightSystem::calculateLighting(float x, float y, const Player& player, con
             
             float angleDiff = MathUtils::normalize_angle(angleToPoint - playerAngle);
             
-            // check if point is in flashlight cone
             if (std::abs(angleDiff) < m_flashlightAngle)
             {
                 if (hasLineOfSight(player.getX(), player.getY(), x, y, map))
                 {
-                    // cubic falloff looks better than linear
                     float distanceAttenuation = 1.0f - (distance / m_flashlightRadius);
                     distanceAttenuation = distanceAttenuation * distanceAttenuation * distanceAttenuation;
                     
-                    // center of beam is brighter
                     float angleAttenuation = 1.0f - (std::abs(angleDiff) / m_flashlightAngle);
                     angleAttenuation = angleAttenuation * angleAttenuation;
                     
                     float batteryMultiplier = m_flashlightBattery / 100.0f;
                     if (m_flashlightBattery < 20.0f)
                     {
-                        // flicker when dying
                         batteryMultiplier *= 0.5f + 0.5f * std::sin(m_flashlightBattery * 10.0f);
                     }
                     

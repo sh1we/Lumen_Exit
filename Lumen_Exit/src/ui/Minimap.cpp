@@ -1,6 +1,6 @@
 #include "Minimap.h"
-#include "Map.h"
-#include "Player.h"
+#include "../world/Map.h"
+#include "../world/Player.h"
 #include <cmath>
 
 Minimap::Minimap(int screenWidth, int screenHeight)

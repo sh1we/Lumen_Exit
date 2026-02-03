@@ -1,7 +1,7 @@
 #include "HUD.h"
-#include "Player.h"
-#include "LightSystem.h"
-#include "ResourceManager.h"
+#include "../world/Player.h"
+#include "../rendering/LightSystem.h"
+#include "../utils/ResourceManager.h"
 #include <iostream>
 #include <sstream>
 #include <iomanip>

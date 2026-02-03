@@ -29,7 +29,6 @@ void PostProcessing::drawVignette(sf::RenderWindow& window, float intensity)
     
     sf::VertexArray vignette(sf::Quads);
     
-    // gradient quads for each edge
     {
         float alpha = intensity * 200.0f;
         sf::Color edgeColor(0, 0, 0, static_cast<sf::Uint8>(alpha));
@@ -65,11 +64,9 @@ void PostProcessing::drawVignette(sf::RenderWindow& window, float intensity)
 
 void PostProcessing::drawLowBatteryEffect(sf::RenderWindow& window, float batteryPercent)
 {
-    // red vignette when battery is dying
     float intensity = (30.0f - batteryPercent) / 30.0f;
     intensity = std::max(0.0f, std::min(1.0f, intensity));
     
-    // pulsing effect
     float pulse = 0.5f + 0.5f * std::sin(batteryPercent * 0.5f);
     intensity *= pulse;
     

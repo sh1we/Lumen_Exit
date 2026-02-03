@@ -1,11 +1,11 @@
 #include "GameManager.h"
-#include "Map.h"
-#include "Player.h"
-#include "Raycaster.h"
-#include "Minimap.h"
-#include "HUD.h"
-#include "LightSystem.h"
-#include "PostProcessing.h"
+#include "../world/Map.h"
+#include "../world/Player.h"
+#include "../rendering/Raycaster.h"
+#include "../ui/Minimap.h"
+#include "../ui/HUD.h"
+#include "../rendering/LightSystem.h"
+#include "../rendering/PostProcessing.h"
 #include <iostream>
 
 GameManager::GameManager(const GameConfig& config)

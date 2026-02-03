@@ -1,6 +1,6 @@
 #include "Player.h"
 #include "Map.h"
-#include "MathUtils.h"
+#include "../utils/MathUtils.h"
 #include <SFML/Window/Keyboard.hpp>
 #include <cmath>
 
