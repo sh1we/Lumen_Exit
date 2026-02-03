@@ -6,6 +6,7 @@
 #include "../utils/MathUtils.h"
 #include <cmath>
 #include <algorithm>
+#include <omp.h>
 
 const float PI = MathUtils::PI;
 
@@ -125,7 +126,8 @@ void Raycaster::render(sf::RenderWindow& window, const Player& player, const Map
     float fogDistance = lightSystem.isFlashlightEnabled() && lightSystem.getFlashlightBattery() > 0.0f ? 6.0f : 2.5f;
     float ambientComponent = 0.08f;  // 8% base visibility
     
-    // PASS 1: calculate all ray data and lighting values
+    // PASS 1: calculate all ray data and lighting values (parallel)
+    #pragma omp parallel for schedule(dynamic, 64)
     for (int x = 0; x < m_screenWidth; ++x)
     {
         float cameraX = 2.0f * x / static_cast<float>(m_screenWidth) - 1.0f;
@@ -153,13 +155,11 @@ void Raycaster::render(sf::RenderWindow& window, const Player& player, const Map
         int drawEnd = drawStart + wallHeight;
         
         int samples;
-        bool useInterpolation = false;
         
         switch (m_lightingQuality)
         {
             case LightingQuality::LOW:
                 samples = 2;
-                useInterpolation = (x % 2 == 1);
                 break;
             case LightingQuality::MEDIUM:
                 samples = 3;
@@ -172,11 +172,6 @@ void Raycaster::render(sf::RenderWindow& window, const Player& player, const Map
         
         float avgLighting;
         
-        if (useInterpolation && x > 0)
-        {
-            avgLighting = m_lastLighting;
-        }
-        else
         {
             float totalLighting = 0.0f;
             
@@ -203,8 +198,6 @@ void Raycaster::render(sf::RenderWindow& window, const Player& player, const Map
             
             float wallLighting = lightSystem.calculateLighting(hit.hitX, hit.hitY, player, map);
             avgLighting = avgLighting * 0.6f + wallLighting * 0.4f;
-            
-            m_lastLighting = avgLighting;
         }
         
         float distanceFog = 1.0f;

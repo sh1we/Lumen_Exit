@@ -427,6 +427,9 @@ int main()
 				bool inSafeRoom = gameManager.getPlayer()->isInRoom(*gameManager.getMap());
 				gameManager.getLightSystem()->updateFlashlight(deltaTime, gameManager.getLightSystem()->isFlashlightEnabled(), inSafeRoom);
 				
+				// update visible lights for frustum culling
+				gameManager.getLightSystem()->updateVisibleLights(*gameManager.getPlayer());
+				
 				// win condition
 				if (gameManager.getPlayer()->hasReachedExit())
 				{

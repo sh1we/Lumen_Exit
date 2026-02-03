@@ -1,6 +1,7 @@
 #pragma once
 #include <SFML/Graphics.hpp>
 #include <vector>
+#include <unordered_map>
 #include <cmath>
 
 class Player;
@@ -24,8 +25,19 @@ public:
     LightSystem();
     
     float calculateLighting(float x, float y, const Player& player, const Map& map) const;
+    
+    // batch version - process 4 points at once using SIMD
+    void calculateLighting4(const float* x, const float* y, float* results,
+                           const Player& player, const Map& map) const;
+    
     void addRoomLights(const Map& map);
     void clearLights();
+    
+    // call once per frame to update frustum culling
+    void updateVisibleLights(const Player& player);
+    
+    // clear visibility cache (call when player moves significantly)
+    void clearVisibilityCache() { m_visibilityCache.clear(); }
     
     void setFlashlightEnabled(bool enabled) { m_flashlightEnabled = enabled; }
     bool isFlashlightEnabled() const { return m_flashlightEnabled; }
@@ -47,6 +59,10 @@ public:
     
 private:
     std::vector<Light> m_staticLights;
+    std::vector<int> m_visibleLightIndices;  // frustum culled lights
+    
+    // visibility cache: key = (lightIdx << 20) | (tileX << 10) | tileY
+    mutable std::unordered_map<uint32_t, bool> m_visibilityCache;
     
     bool m_flashlightEnabled;
     float m_flashlightBattery;
@@ -57,4 +73,5 @@ private:
     float m_ambientLight;
     
     bool hasLineOfSight(float x1, float y1, float x2, float y2, const Map& map) const;
+    bool hasLineOfSightCached(int lightIdx, float x2, float y2, const Map& map) const;
 };
