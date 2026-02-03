@@ -68,14 +68,25 @@ bool LightSystem::hasLineOfSight(float x1, float y1, float x2, float y2, const M
     
     float distance = MathUtils::fast_distance(dx, dy);
     
-    int steps = static_cast<int>(distance);
-    if (steps < 1) steps = 1;
+    if (distance < 0.1f)
+        return true;
+    
+    // normalize direction
+    float dirX = dx / distance;
+    float dirY = dy / distance;
+    
+    // check slightly before the target point to avoid hitting the wall we're checking
+    float checkDist = distance - 0.1f;
+    if (checkDist < 0.1f)
+        return true;
+    
+    int steps = static_cast<int>(checkDist) + 1;
     
     for (int i = 0; i <= steps; ++i)
     {
         float t = static_cast<float>(i) / static_cast<float>(steps);
-        float checkX = x1 + dx * t;
-        float checkY = y1 + dy * t;
+        float checkX = x1 + dirX * checkDist * t;
+        float checkY = y1 + dirY * checkDist * t;
         
         if (map.isWall(static_cast<int>(checkX), static_cast<int>(checkY)))
         {
