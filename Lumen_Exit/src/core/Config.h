@@ -22,6 +22,11 @@ struct GameConfig
     // graphics
     LightingQuality lightingQuality = LightingQuality::HIGH;
     
+    // audio
+    float masterVolume = 100.0f;
+    float musicVolume = 50.0f;
+    float sfxVolume = 80.0f;
+    
     // controls
     float mouseSensitivity = 0.001f;
     

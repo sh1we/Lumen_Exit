@@ -14,6 +14,7 @@
 #include "../rendering/LightSystem.h"
 #include "../rendering/PostProcessing.h"
 #include "../utils/ResourceManager.h"
+#include "../utils/AudioManager.h"
 
 enum class GameState
 {
@@ -29,6 +30,11 @@ int main()
 {
 	GameConfig config;
 	config.loadFromFile("config.txt");
+	
+	// init audio from config
+	AudioManager::getInstance().setMasterVolume(config.masterVolume);
+	AudioManager::getInstance().setMusicVolumeLevel(config.musicVolume);
+	AudioManager::getInstance().setSfxVolume(config.sfxVolume);
 
 	sf::Uint32 style = config.fullscreen ? sf::Style::Fullscreen : sf::Style::Close;
 	sf::RenderWindow window(sf::VideoMode(config.screenWidth, config.screenHeight), "Lumen_Exit()", style);
@@ -66,6 +72,7 @@ int main()
 	bool tabPressed = false;
 	bool escPressed = false;
 	bool fPressed = false;
+	bool ambientPlaying = false;
 	
 	sf::Clock clock;
 	float gameTime = 0.0f;
@@ -119,6 +126,7 @@ int main()
 					}
 					else if (event.key.code == sf::Keyboard::Enter)
 					{
+						AudioManager::getInstance().playSound("click", 80.0f);
 						int selected = menu->getSelectedItem();
 						
 						if (menu->isInGameMode())
@@ -397,6 +405,13 @@ int main()
 		}
 		else if (gameState == GameState::PLAYING)
 		{
+			// start ambient music when entering gameplay
+			if (!ambientPlaying)
+			{
+				AudioManager::getInstance().playMusic("ambient", 30.0f);
+				ambientPlaying = true;
+			}
+			
 			if (window.hasFocus() && gameManager.isInitialized())
 			{
 				if (mouseControlEnabled)
@@ -451,6 +466,8 @@ int main()
 					);
 					gameState = GameState::VICTORY;
 					window.setMouseCursorVisible(true);
+					AudioManager::getInstance().stopMusic();
+					ambientPlaying = false;
 				}
 			}
 			

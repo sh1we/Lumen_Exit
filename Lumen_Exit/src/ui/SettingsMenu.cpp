@@ -1,5 +1,6 @@
 #include "SettingsMenu.h"
 #include "../utils/ResourceManager.h"
+#include "../utils/AudioManager.h"
 #include <iostream>
 #include <sstream>
 #include <iomanip>
@@ -244,6 +245,117 @@ void SettingsMenu::draw(sf::RenderWindow& window)
         yPos += 80.0f;
     }
     
+    // master volume
+    {
+        std::ostringstream volStr;
+        volStr << "Master Volume: " << static_cast<int>(m_config.masterVolume) << "%";
+        
+        sf::Text volText;
+        volText.setFont(m_font);
+        volText.setString(volStr.str());
+        volText.setCharacterSize(24);
+        volText.setFillColor(m_selectedOption == 6 ? sf::Color(255, 255, 100) : sf::Color(200, 200, 200));
+        
+        sf::FloatRect volRect = volText.getLocalBounds();
+        volText.setOrigin(volRect.left + volRect.width / 2.0f, volRect.top + volRect.height / 2.0f);
+        volText.setPosition(sf::Vector2f(m_width / 2.0f, yPos));
+        window.draw(volText);
+        
+        // slider
+        float barWidth = 300.0f;
+        float barHeight = 12.0f;
+        float barX = m_width / 2.0f - barWidth / 2.0f;
+        float barY = yPos + 25.0f;
+        
+        sf::RectangleShape barBg(sf::Vector2f(barWidth, barHeight));
+        barBg.setPosition(barX, barY);
+        barBg.setFillColor(sf::Color(50, 50, 50));
+        barBg.setOutlineColor(m_selectedOption == 6 ? sf::Color(255, 255, 100) : sf::Color(150, 150, 150));
+        barBg.setOutlineThickness(2.0f);
+        window.draw(barBg);
+        
+        sf::RectangleShape barFill(sf::Vector2f(barWidth * m_config.masterVolume / 100.0f, barHeight));
+        barFill.setPosition(barX, barY);
+        barFill.setFillColor(sf::Color(100, 180, 255));
+        window.draw(barFill);
+        
+        yPos += 60.0f;
+    }
+    
+    // music volume
+    {
+        std::ostringstream volStr;
+        volStr << "Music Volume: " << static_cast<int>(m_config.musicVolume) << "%";
+        
+        sf::Text volText;
+        volText.setFont(m_font);
+        volText.setString(volStr.str());
+        volText.setCharacterSize(24);
+        volText.setFillColor(m_selectedOption == 7 ? sf::Color(255, 255, 100) : sf::Color(200, 200, 200));
+        
+        sf::FloatRect volRect = volText.getLocalBounds();
+        volText.setOrigin(volRect.left + volRect.width / 2.0f, volRect.top + volRect.height / 2.0f);
+        volText.setPosition(sf::Vector2f(m_width / 2.0f, yPos));
+        window.draw(volText);
+        
+        // slider
+        float barWidth = 300.0f;
+        float barHeight = 12.0f;
+        float barX = m_width / 2.0f - barWidth / 2.0f;
+        float barY = yPos + 25.0f;
+        
+        sf::RectangleShape barBg(sf::Vector2f(barWidth, barHeight));
+        barBg.setPosition(barX, barY);
+        barBg.setFillColor(sf::Color(50, 50, 50));
+        barBg.setOutlineColor(m_selectedOption == 7 ? sf::Color(255, 255, 100) : sf::Color(150, 150, 150));
+        barBg.setOutlineThickness(2.0f);
+        window.draw(barBg);
+        
+        sf::RectangleShape barFill(sf::Vector2f(barWidth * m_config.musicVolume / 100.0f, barHeight));
+        barFill.setPosition(barX, barY);
+        barFill.setFillColor(sf::Color(180, 100, 255));
+        window.draw(barFill);
+        
+        yPos += 60.0f;
+    }
+    
+    // sfx volume
+    {
+        std::ostringstream volStr;
+        volStr << "SFX Volume: " << static_cast<int>(m_config.sfxVolume) << "%";
+        
+        sf::Text volText;
+        volText.setFont(m_font);
+        volText.setString(volStr.str());
+        volText.setCharacterSize(24);
+        volText.setFillColor(m_selectedOption == 8 ? sf::Color(255, 255, 100) : sf::Color(200, 200, 200));
+        
+        sf::FloatRect volRect = volText.getLocalBounds();
+        volText.setOrigin(volRect.left + volRect.width / 2.0f, volRect.top + volRect.height / 2.0f);
+        volText.setPosition(sf::Vector2f(m_width / 2.0f, yPos));
+        window.draw(volText);
+        
+        // slider
+        float barWidth = 300.0f;
+        float barHeight = 12.0f;
+        float barX = m_width / 2.0f - barWidth / 2.0f;
+        float barY = yPos + 25.0f;
+        
+        sf::RectangleShape barBg(sf::Vector2f(barWidth, barHeight));
+        barBg.setPosition(barX, barY);
+        barBg.setFillColor(sf::Color(50, 50, 50));
+        barBg.setOutlineColor(m_selectedOption == 8 ? sf::Color(255, 255, 100) : sf::Color(150, 150, 150));
+        barBg.setOutlineThickness(2.0f);
+        window.draw(barBg);
+        
+        sf::RectangleShape barFill(sf::Vector2f(barWidth * m_config.sfxVolume / 100.0f, barHeight));
+        barFill.setPosition(barX, barY);
+        barFill.setFillColor(sf::Color(255, 180, 100));
+        window.draw(barFill);
+        
+        yPos += 60.0f;
+    }
+    
     // hints
     sf::Text hint;
     hint.setFont(m_font);
@@ -291,11 +403,11 @@ void SettingsMenu::handleInput(sf::Keyboard::Key key)
     
     if (key == sf::Keyboard::Up)
     {
-        m_selectedOption = (m_selectedOption - 1 + 6) % 6;
+        m_selectedOption = (m_selectedOption - 1 + 9) % 9;
     }
     else if (key == sf::Keyboard::Down)
     {
-        m_selectedOption = (m_selectedOption + 1) % 6;
+        m_selectedOption = (m_selectedOption + 1) % 9;
     }
     else if (key == sf::Keyboard::Left)
     {
@@ -331,6 +443,24 @@ void SettingsMenu::handleInput(sf::Keyboard::Key key)
             m_config.lightingQuality = static_cast<LightingQuality>(q);
             m_config.saveToFile("config.txt");
         }
+        else if (m_selectedOption == 6)
+        {
+            m_config.masterVolume = std::max(0.0f, m_config.masterVolume - 5.0f);
+            AudioManager::getInstance().setMasterVolume(m_config.masterVolume);
+            m_config.saveToFile("config.txt");
+        }
+        else if (m_selectedOption == 7)
+        {
+            m_config.musicVolume = std::max(0.0f, m_config.musicVolume - 5.0f);
+            AudioManager::getInstance().setMusicVolumeLevel(m_config.musicVolume);
+            m_config.saveToFile("config.txt");
+        }
+        else if (m_selectedOption == 8)
+        {
+            m_config.sfxVolume = std::max(0.0f, m_config.sfxVolume - 5.0f);
+            AudioManager::getInstance().setSfxVolume(m_config.sfxVolume);
+            m_config.saveToFile("config.txt");
+        }
     }
     else if (key == sf::Keyboard::Right)
     {
@@ -364,6 +494,24 @@ void SettingsMenu::handleInput(sf::Keyboard::Key key)
             int q = static_cast<int>(m_config.lightingQuality);
             q = (q + 1) % 3;
             m_config.lightingQuality = static_cast<LightingQuality>(q);
+            m_config.saveToFile("config.txt");
+        }
+        else if (m_selectedOption == 6)
+        {
+            m_config.masterVolume = std::min(100.0f, m_config.masterVolume + 5.0f);
+            AudioManager::getInstance().setMasterVolume(m_config.masterVolume);
+            m_config.saveToFile("config.txt");
+        }
+        else if (m_selectedOption == 7)
+        {
+            m_config.musicVolume = std::min(100.0f, m_config.musicVolume + 5.0f);
+            AudioManager::getInstance().setMusicVolumeLevel(m_config.musicVolume);
+            m_config.saveToFile("config.txt");
+        }
+        else if (m_selectedOption == 8)
+        {
+            m_config.sfxVolume = std::min(100.0f, m_config.sfxVolume + 5.0f);
+            AudioManager::getInstance().setSfxVolume(m_config.sfxVolume);
             m_config.saveToFile("config.txt");
         }
     }
